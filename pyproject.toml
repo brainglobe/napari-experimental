@@ -47,7 +47,7 @@ include = ["napari_experimental*"]
 namespaces = false
 
 [tool.setuptools.package-data]
-include = ["napari_experimental*"]
+napari_experimental = ["*.yaml"]
 
 [tool.setuptools_scm]
 
