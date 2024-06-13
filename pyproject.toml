@@ -66,7 +66,7 @@ fix = true
 [tool.tox]
 legacy_tox_ini = """
 [tox]
-envlist = py{38,39,310}-{linux,macos,windows}
+envlist = py{39,310,311}-{linux,macos,windows}
 isolated_build=true
 
 [gh-actions]
