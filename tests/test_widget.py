@@ -1,5 +1,4 @@
 import numpy as np
-
 from napari_experimental._widget import (
     ExampleQWidget,
     ImageThreshold,
