@@ -15,6 +15,9 @@ contributions:
     - id: napari-experimental.make_function_widget
       python_name: napari_experimental:threshold_autogenerate_widget
       title: Make threshold function widget
+    - id: napari-experimental.make_qwidget
+      python_name: napari_experimental:ExampleQWidget
+      title: Make ExampleQWidget
   widgets:
     - command: napari-experimental.make_container_widget
       display_name: Container Threshold
