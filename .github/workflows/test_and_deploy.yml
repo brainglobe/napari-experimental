@@ -27,7 +27,7 @@ jobs:
     name: Check Linting
     steps:
       - uses: neuroinformatics-unit/actions/lint@v2
-  
+
   manifest:
     runs-on: ubuntu-latest
     name: Check Manifest
@@ -45,7 +45,7 @@ jobs:
     steps:
       - name: Setup qtpy libraries
         uses: tlambert03/setup-qt-libs@v1
-      
+
       - name: Setup VTK headless display
         uses: pyvista/setup-headless-display-action@v2
 
@@ -62,7 +62,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: neuroinformatics-unit/actions/build_sdist_wheels@v2
-  
+
   upload_all:
     name: Publish to PyPI
     needs: [build_sdist_wheel]
