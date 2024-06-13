@@ -19,14 +19,14 @@ classifiers = [
     "Topic :: Scientific/Engineering :: Image Processing",
 ]
 requires-python = ">=3.9"
-dependencies = ["numpy", "napari", "magicgui", "qtpy", "scikit-image"]
+dependencies = ["numpy", "napari", "magicgui", "pyqt5", "qtpy", "scikit-image"]
 dynamic = ["version"]
 
 [project.entry-points."napari.manifest"]
 napari-experimental = "napari_experimental:napari.yaml"
 
 [project.optional-dependencies]
-dev = ["tox", "pytest", "pytest-cov", "pytest-qt", "pyqt5"]
+dev = ["tox", "pytest", "pytest-cov", "pytest-qt"]
 
 [project.urls]
 "Bug Tracker" = "https://github.com/alessandrofelder/napari-experimental/issues"
