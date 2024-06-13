@@ -1,35 +1,83 @@
+[project]
+name = "napari-experimental"
+description = "A place to experiment with core-independent features without breaking core napari"
+readme = "README.md"
+license = { file = "LICENSE" }
+authors = [{ name = "Alessandro Felder", email = "a.felder@ucl.ac.uk" }]
+classifiers = [
+    "Development Status :: 2 - Pre-Alpha",
+    "Framework :: napari",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: BSD License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Topic :: Scientific/Engineering :: Image Processing",
+]
+requires-python = ">=3.9"
+dependencies = ["numpy", "napari", "magicgui", "qtpy", "scikit-image"]
+dynamic = ["version"]
+
+[project.entry-points."napari.manifest"]
+napari-experimental = "napari_experimental:napari.yaml"
+
+[project.optional-dependencies]
+dev = ["tox", "pytest", "pytest-cov", "pytest-qt", "pyqt5"]
+
+[project.urls]
+"Bug Tracker" = "https://github.com/alessandrofelder/napari-experimental/issues"
+"Documentation" = "https://github.com/alessandrofelder/napari-experimental#README.md"
+"Source Code" = "https://github.com/alessandrofelder/napari-experimental"
+"User Support" = "https://github.com/alessandrofelder/napari-experimental/issues"
+
 [build-system]
-requires = ["setuptools>=42.0.0", "wheel"]
+requires = ["setuptools>=42.0.0", "setuptools_scm", "wheel"]
 build-backend = "setuptools.build_meta"
 
+[tool.setuptools]
+include-package-data = true
 
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["napari_experimental*"]
+namespaces = false
+
+[tool.setuptools.package-data]
+include = ["napari_experimental*"]
+
+[tool.setuptools_scm]
 
 [tool.black]
 line-length = 79
-target-version = ['py38', 'py39', 'py310']
-
+target-version = ["py38", "py39", "py310", "py311"]
 
 [tool.ruff]
 line-length = 79
 select = [
-    "E", "F", "W", #flake8
-    "UP", # pyupgrade
-    "I", # isort
+    "E",
+    "F",
+    "W",   #flake8
+    "UP",  # pyupgrade
+    "I",   # isort
     "BLE", # flake8-blind-exception
-    "B", # flake8-bugbear
-    "A", # flake8-builtins
-    "C4", # flake8-comprehensions
+    "B",   # flake8-bugbear
+    "A",   # flake8-builtins
+    "C4",  # flake8-comprehensions
     "ISC", # flake8-implicit-str-concat
-    "G", # flake8-logging-format
+    "G",   # flake8-logging-format
     "PIE", # flake8-pie
     "SIM", # flake8-simplify
 ]
 ignore = [
-    "E501", # line too long. let black handle this
-    "UP006", "UP007", # type annotation. As using magicgui require runtime type annotation then we disable this.
+    "E501",   # line too long. let black handle this
+    "UP006",
+    "UP007",  # type annotation. As using magicgui require runtime type annotation then we disable this.
     "SIM117", # flake8-simplify - some of merged with statements are not looking great with black, reanble after drop python 3.9
 ]
-
 exclude = [
     ".bzr",
     ".direnv",
@@ -51,6 +99,40 @@ exclude = [
     "*vendored*",
     "*_vendor*",
 ]
-
-target-version = "py38"
+target-version = "py311"
 fix = true
+
+[tool.tox]
+legacy_tox_ini = """
+[tox]
+envlist = py{38,39,310}-{linux,macos,windows}
+isolated_build=true
+
+[gh-actions]
+python =
+    3.9: py39
+    3.10: py310
+    3.11: py3.11
+
+[gh-actions:env]
+PLATFORM =
+    ubuntu-latest: linux
+    macos-latest: macos
+    windows-latest: windows
+
+[testenv]
+platform =
+    macos: darwin
+    linux: linux
+    windows: win32
+passenv =
+    CI
+    GITHUB_ACTIONS
+    DISPLAY
+    XAUTHORITY
+    NUMPY_EXPERIMENTAL_ARRAY_FUNCTION
+    PYVISTA_OFF_SCREEN
+extras =
+    testing
+commands = pytest -v --color=yes --cov=napari_experimental --cov-report=xml
+"""
