@@ -32,7 +32,7 @@ Replace code below according to your needs.
 from typing import TYPE_CHECKING
 
 from napari.components import LayerList
-from qtpy.QtWidgets import QVBoxLayout, QWidget
+from qtpy.QtWidgets import QPushButton, QVBoxLayout, QWidget
 
 from napari_experimental.tree_model import (
     GroupLayer,
@@ -55,9 +55,18 @@ class GroupLayerWidget(QWidget):
 
         self.viewer = viewer
 
-        group_layer = GroupLayer(self.global_layers)
-        self.layer_tree_model = QtLayerTreeModel(group_layer, parent=self)
-        self.layer_tree_view = QtLayerTreeView(self.global_layers, parent=self)
+        self.group_layer = GroupLayer(self.global_layers)
+        self.layer_tree_model = QtLayerTreeModel(self.group_layer, parent=self)
+        self.layer_tree_view = QtLayerTreeView(self.group_layer, parent=self)
+        self.layer_tree_view.setModel(self.layer_tree_model)
+
+        self.add_group_button = QPushButton("Add empty layer group")
+        self.add_group_button.clicked.connect(self._on_click)
 
         self.setLayout(QVBoxLayout())
+        self.layout().addWidget(self.add_group_button)
         self.layout().addWidget(self.layer_tree_view)
+
+    def _on_click(self) -> None:
+        """ """
+        print("Button click")
