@@ -31,24 +31,33 @@ Replace code below according to your needs.
 
 from typing import TYPE_CHECKING
 
-from qtpy.QtWidgets import QHBoxLayout, QPushButton, QWidget
+from napari.components import LayerList
+from qtpy.QtWidgets import QVBoxLayout, QWidget
+
+from napari_experimental.tree_model import (
+    GroupLayer,
+    QtLayerTreeModel,
+    QtLayerTreeView,
+)
 
 if TYPE_CHECKING:
     import napari
 
 
-class ExampleQWidget(QWidget):
-    # your QWidget.__init__ can optionally request the napari viewer instance
-    # use a type annotation of 'napari.viewer.Viewer' for any parameter
+class GroupLayerWidget(QWidget):
+
+    @property
+    def global_layers(self) -> LayerList:
+        return self.viewer.layers
+
     def __init__(self, viewer: "napari.viewer.Viewer"):
         super().__init__()
+
         self.viewer = viewer
 
-        btn = QPushButton("Click me!")
-        btn.clicked.connect(self._on_click)
+        group_layer = GroupLayer(self.global_layers)
+        self.layer_tree_model = QtLayerTreeModel(group_layer, parent=self)
+        self.layer_tree_view = QtLayerTreeView(self.global_layers, parent=self)
 
-        self.setLayout(QHBoxLayout())
-        self.layout().addWidget(btn)
-
-    def _on_click(self):
-        print("napari has", len(self.viewer.layers), "layers")
+        self.setLayout(QVBoxLayout())
+        self.layout().addWidget(self.layer_tree_view)

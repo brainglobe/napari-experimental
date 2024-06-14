@@ -1,5 +1,5 @@
 from ._widget import (
-    ExampleQWidget,
+    GroupLayerWidget,
 )
 
-__all__ = ("ExampleQWidget",)
+__all__ = ("GroupLayerWidget",)

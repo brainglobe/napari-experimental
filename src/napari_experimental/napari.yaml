@@ -3,12 +3,12 @@ display_name: Napari experimental
 # use 'hidden' to remove plugin from napari hub search results
 visibility: public
 # see https://napari.org/stable/plugins/manifest.html for valid categories
-categories: ["Annotation", "Segmentation", "Acquisition"]
+categories: []
 contributions:
   commands:
-    - id: napari-experimental.make_qwidget
-      python_name: napari_experimental:ExampleQWidget
-      title: Make ExampleQWidget
+    - id: napari-experimental.make_group_layer_widget
+      python_name: napari_experimental:GroupLayerWidget
+      title: Make group layers widget
   widgets:
-    - command: napari-experimental.make_qwidget
-      display_name: Example QWidget
+    - command: napari-experimental.make_group_layer_widget
+      display_name: Show Grouped Layers

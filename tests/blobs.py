@@ -20,4 +20,8 @@ il = napari.layers.Image(blobs, scale=(1, 2), translate=(20, 15))
 viewer.add_layer(pl)
 viewer.add_layer(il)
 
+dock_widget, plugin_widget = viewer.window.add_plugin_dock_widget(
+    "napari-experimental", "Show Grouped Layers"
+)
+
 napari.run()
