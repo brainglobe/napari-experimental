@@ -8,6 +8,15 @@ class GroupLayer(Group[Layer], Layer):
     def __init__(
         self, children: Iterable[Layer] = (), name: str = "grouped layers"
     ) -> None:
+        def default_node_name():
+            return "Node"
+
+        for child in children:
+            if not hasattr(
+                child,
+                "_node_name",
+            ):
+                child._node_name = default_node_name
         Group.__init__(self, children=children, name=name, basetype=Layer)
         group_emitters = self.events
         Layer.__init__(self, None, self._get_ndim(), name=name)
