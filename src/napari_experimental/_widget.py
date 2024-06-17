@@ -29,15 +29,16 @@ References:
 Replace code below according to your needs.
 """
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Tuple
 
 from napari.components import LayerList
+from napari.layers import Layer
 from qtpy.QtWidgets import QPushButton, QVBoxLayout, QWidget
 
-from napari_experimental.tree_model import (
-    GroupLayer,
-    QtLayerTreeModel,
-    QtLayerTreeView,
+from napari_experimental.names_only import (
+    LayerNamesTracker,
+    QtLayerNamesTreeModel,
+    QtLayerNamesTreeView,
 )
 
 if TYPE_CHECKING:
@@ -55,18 +56,38 @@ class GroupLayerWidget(QWidget):
 
         self.viewer = viewer
 
-        self.group_layer = GroupLayer(self.global_layers)
-        self.layer_tree_model = QtLayerTreeModel(self.group_layer, parent=self)
-        self.layer_tree_view = QtLayerTreeView(self.group_layer, parent=self)
-        self.layer_tree_view.setModel(self.layer_tree_model)
+        self.layer_names = LayerNamesTracker(self.global_layers)
+        self.layer_names_model = QtLayerNamesTreeModel(
+            self.layer_names, parent=self
+        )
+        self.layer_names_view = QtLayerNamesTreeView(
+            self.layer_names, parent=self
+        )
+
+        self.global_layers.events.inserted.connect(
+            self._new_layer
+        )  # connect add layer to _new_layer method here
 
         self.add_group_button = QPushButton("Add empty layer group")
-        self.add_group_button.clicked.connect(self._on_click)
+        self.add_group_button.clicked.connect(self._new_layer_group)
+
+        self.enter_debugger = QPushButton("ENTER DEBUGGER")
+        self.enter_debugger.clicked.connect(self._enter_debug)
 
         self.setLayout(QVBoxLayout())
+        self.layout().addWidget(self.enter_debugger)
         self.layout().addWidget(self.add_group_button)
-        self.layout().addWidget(self.layer_tree_view)
+        self.layout().addWidget(self.layer_names_view)
 
-    def _on_click(self) -> None:
+    def _new_layer_group(self) -> None:
         """ """
-        print("Button click")
+        # Still causes bugs when moving groups
+        # inside other groups, to investigate!
+        self.layer_names.add_new_item()
+
+    def _new_layer(self, event: Tuple[int, Layer]) -> None:
+        """"""
+        self.layer_names.add_new_item(layer_ptr=event.value)
+
+    def _enter_debug(self) -> None:
+        pass
