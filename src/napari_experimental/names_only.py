@@ -66,6 +66,26 @@ class LayerNamesTracker(Group[LayerDisplayNode]):
             basetype=LayerDisplayNode,
         )
 
+    def _check_already_tracking(self, layer_ptr: Layer) -> bool:
+        """
+        Return TRUE if the layer provided is already being tracked
+        by a Node in this tree.
+
+        Layer equality is determined by the IS keyword, to confirm that
+        a Node is pointing to the Layer object in memory.
+
+        :param layer_ptr: Reference to the Layer to determine is in the
+        model.
+        """
+        for tracked_layer in self:
+            if (
+                isinstance(tracked_layer, LayerDisplayNode)
+                and tracked_layer.layer is layer_ptr
+            ):
+                return True
+        else:
+            return False
+
     def add_new_item(
         self,
         insert_at: Optional[int] = None,
@@ -74,21 +94,56 @@ class LayerNamesTracker(Group[LayerDisplayNode]):
         """
         Insert a new LayerDisplayNode, or LayerNamesTracker, into the instance.
 
-        By default, it is assumed that a new LayerNamesTracker (Group) is being added.
-        - Groups added in this way may themselves be empty.
+        By default, it is assumed that a new LayerNamesTracker (Group)
+        is being added. Groups added in this way may themselves be empty.
 
         To add a new Node, provide the layer_ptr argument.
-        - Note that it is impossible to add a new Node without providing the layer it should track.
-
-        TODO: Ensure that layers cannot be tracked by more than one Node?
-        """  # noqa: E501
+        Adding a new Node without providing the layer it should track is
+        prohibited.
+        Adding a new Node that tracks an already tracked layer is also
+        prohibited.
+        """
         if insert_at is None:
             insert_at = len(self)
 
         if layer_ptr is None:
             self.insert(insert_at, LayerNamesTracker())
-        else:
-            self.insert(insert_at, LayerDisplayNode(layer_ptr=layer_ptr))
+        elif isinstance(layer_ptr, Layer):
+            if not self._check_already_tracking(layer_ptr):
+                self.insert(insert_at, LayerDisplayNode(layer_ptr=layer_ptr))
+            else:
+                raise ValueError(
+                    f"Already tracking {layer_ptr}, "
+                    "but requested a new Node for it."
+                )
+
+    def remove_layer_item(self, layer_ptr: Layer, prune: bool = True) -> None:
+        """
+        Removes the LayerDisplayNode item tracking (all instances of)
+        the given Layer from the tree model.
+
+        If removing a layer would result in one of the branches of the
+        tree being barren, then the empty branch is also removed from
+        the model. This can be toggled with the prune argument.
+
+        Note that the IS keyword is used to determine equality between
+        the layer provided and the layers that are tracked by the Nodes.
+        This ensures that we only remove references to layers we are
+        tracking from the model, rather than removing the Layer from
+        memory itself (as there may still be hanging references to it).
+
+        :param layer_ptr: All Nodes tracking layer_ptr will be removed from
+        the model.
+        :param prune: If True, branches that are empty after removing the
+        layer in question will also be removed.
+        """
+        for tracked_layer in self:
+            if isinstance(tracked_layer, LayerNamesTracker):
+                tracked_layer.remove_layer_item(layer_ptr)
+                if prune and len(tracked_layer) == 0:
+                    self.remove(tracked_layer)
+            elif tracked_layer.layer is layer_ptr:
+                self.remove(tracked_layer)
 
 
 class QtLayerNamesTreeModel(QtNodeTreeModel[LayerNamesTracker]):
