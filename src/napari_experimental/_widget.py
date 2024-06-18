@@ -9,7 +9,7 @@ from napari.utils.events import Event
 from qtpy.QtWidgets import QPushButton, QVBoxLayout, QWidget
 
 from napari_experimental.names_only import (
-    LayerNamesTracker,
+    GroupLayer,
     QtLayerNamesTreeModel,
     QtLayerNamesTreeView,
 )
@@ -29,7 +29,7 @@ class GroupLayerWidget(QWidget):
 
         self.viewer = viewer
 
-        self.layer_names = LayerNamesTracker(self.global_layers)
+        self.layer_names = GroupLayer(self.global_layers)
         self.layer_names_model = QtLayerNamesTreeModel(
             self.layer_names, parent=self
         )

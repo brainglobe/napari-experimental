@@ -16,9 +16,9 @@ def random_string(k: int = 5) -> str:
     return "".join(random.choices(string.ascii_uppercase + string.digits, k=5))
 
 
-class LayerDisplayNode(Node):
+class NodeWrappingLayer(Node):
 
-    __default_name: str = "LayerDisplay"
+    __default_name: str = "Node[None]"
 
     _tracking_layer: Layer
 
@@ -39,7 +39,10 @@ class LayerDisplayNode(Node):
 
     @property
     def name(self) -> str:
-        return self.layer.name
+        if self.is_tracking:
+            return self.layer.name
+        else:
+            return self.__default_name
 
     def __init__(
         self,
@@ -50,20 +53,20 @@ class LayerDisplayNode(Node):
         self.layer = layer_ptr
 
     def __str__(self) -> str:
-        return f"LayerDisplayNode tracking {self.name}"
+        return f"Node[{self.name}]"
 
     def __repr__(self) -> str:
         return self.__str__()
 
 
-class LayerNamesTracker(Group[LayerDisplayNode]):
+class GroupLayer(Group[NodeWrappingLayer]):
 
     def __init__(self, current_layers: Iterable[Layer] = ()):
         Group.__init__(
             self,
-            children=(LayerDisplayNode(layer) for layer in current_layers),
-            name=f"LayerNamesTracker-{random_string()}",
-            basetype=LayerDisplayNode,
+            children=(NodeWrappingLayer(layer) for layer in current_layers),
+            name=f"GroupLayer-{random_string()}",
+            basetype=NodeWrappingLayer,
         )
 
     def _check_already_tracking(self, layer_ptr: Layer) -> bool:
@@ -79,7 +82,7 @@ class LayerNamesTracker(Group[LayerDisplayNode]):
         """
         for tracked_layer in self:
             if (
-                isinstance(tracked_layer, LayerDisplayNode)
+                isinstance(tracked_layer, NodeWrappingLayer)
                 and tracked_layer.layer is layer_ptr
             ):
                 return True
@@ -92,10 +95,10 @@ class LayerNamesTracker(Group[LayerDisplayNode]):
         layer_ptr: Optional[Layer] = None,
     ) -> None:
         """
-        Insert a new LayerDisplayNode, or LayerNamesTracker, into the instance.
+        Insert a new NodeWrappingLayer, or GroupLayer, into the instance.
 
-        By default, it is assumed that a new LayerNamesTracker (Group)
-        is being added. Groups added in this way may themselves be empty.
+        By default, it is assumed that a new GroupLayer is being added.
+        Groups added in this way may themselves be empty.
 
         To add a new Node, provide the layer_ptr argument.
         Adding a new Node without providing the layer it should track is
@@ -107,10 +110,10 @@ class LayerNamesTracker(Group[LayerDisplayNode]):
             insert_at = len(self)
 
         if layer_ptr is None:
-            self.insert(insert_at, LayerNamesTracker())
+            self.insert(insert_at, GroupLayer())
         elif isinstance(layer_ptr, Layer):
             if not self._check_already_tracking(layer_ptr):
-                self.insert(insert_at, LayerDisplayNode(layer_ptr=layer_ptr))
+                self.insert(insert_at, NodeWrappingLayer(layer_ptr=layer_ptr))
             else:
                 raise ValueError(
                     f"Already tracking {layer_ptr}, "
@@ -119,14 +122,14 @@ class LayerNamesTracker(Group[LayerDisplayNode]):
 
     def remove_layer_item(self, layer_ptr: Layer, prune: bool = True) -> None:
         """
-        Removes the LayerDisplayNode item tracking (all instances of)
-        the given Layer from the tree model.
+        Removes (all instances of) NodeWrappingLayers tracking the given
+        Layer from the tree model.
 
-        If removing a layer would result in one of the branches of the
-        tree being barren, then the empty branch is also removed from
-        the model. This can be toggled with the prune argument.
+        If removing a layer would result in one of the Group being empty,
+        then the empty Group is also removed from the model.
+        This can be toggled with the `prune` argument.
 
-        Note that the IS keyword is used to determine equality between
+        Note that the `is` keyword is used to determine equality between
         the layer provided and the layers that are tracked by the Nodes.
         This ensures that we only remove references to layers we are
         tracking from the model, rather than removing the Layer from
@@ -138,7 +141,7 @@ class LayerNamesTracker(Group[LayerDisplayNode]):
         layer in question will also be removed.
         """
         for tracked_layer in self:
-            if isinstance(tracked_layer, LayerNamesTracker):
+            if isinstance(tracked_layer, GroupLayer):
                 tracked_layer.remove_layer_item(layer_ptr)
                 if prune and len(tracked_layer) == 0:
                     self.remove(tracked_layer)
@@ -146,17 +149,17 @@ class LayerNamesTracker(Group[LayerDisplayNode]):
                 self.remove(tracked_layer)
 
 
-class QtLayerNamesTreeModel(QtNodeTreeModel[LayerNamesTracker]):
+class QtLayerNamesTreeModel(QtNodeTreeModel[GroupLayer]):
 
-    def __init__(self, root: LayerNamesTracker, parent: QWidget = None):
+    def __init__(self, root: GroupLayer, parent: QWidget = None):
         super().__init__(root, parent)
         self.setRoot(root)
 
 
 class QtLayerNamesTreeView(QtNodeTreeView):
-    _root: LayerNamesTracker
+    _root: GroupLayer
     model_class = QtLayerNamesTreeModel
 
-    def __init__(self, root: LayerNamesTracker, parent: QWidget = None):
+    def __init__(self, root: GroupLayer, parent: QWidget = None):
         super().__init__(root, parent)
         self.setRoot(root)
