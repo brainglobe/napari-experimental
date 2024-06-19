@@ -56,5 +56,16 @@ class QtGroupLayerView(QtNodeTreeView):
         self.setRoot(root)
 
     def setRoot(self, root: GroupLayer):
-        super().setRoot(root)
+        """Override setRoot to ensure .model is a QtGroupLayerModel"""
+        self._root = root
         self.setModel(QtGroupLayerModel(root, self))
+
+        # from _BaseEventedItemView
+        root.selection.events.changed.connect(self._on_py_selection_change)
+        root.selection.events._current.connect(self._on_py_current_change)
+        self._sync_selection_models()
+
+        # from QtNodeTreeView
+        self.model().rowsRemoved.connect(self._redecorate_root)
+        self.model().rowsInserted.connect(self._redecorate_root)
+        self._redecorate_root()
