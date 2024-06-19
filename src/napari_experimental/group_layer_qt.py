@@ -19,7 +19,7 @@ class QtGroupLayerModel(QtNodeTreeModel[GroupLayer]):
         self.setRoot(root)
 
 
-class QtGroupLayerDelegate(QStyledItemDelegate):
+class QtGroupLayerItemDelegate(QStyledItemDelegate):
 
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
@@ -29,6 +29,7 @@ class QtGroupLayerDelegate(QStyledItemDelegate):
     ) -> None:
         item_to_edit = model.getItem(index)
         if isinstance(item_to_edit, NodeWrappingLayer) and editor.text():
+            # Note that if ... editor.text() prevents us setting an empty name!
             item_to_edit.layer.name = editor.text()
 
 
@@ -40,4 +41,4 @@ class QtGroupLayerView(QtNodeTreeView):
         super().__init__(root, parent)
         self.setRoot(root)
 
-        self.setItemDelegate(QtGroupLayerDelegate())
+        self.setItemDelegate(QtGroupLayerItemDelegate())
