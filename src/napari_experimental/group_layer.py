@@ -42,6 +42,11 @@ class NodeWrappingLayer(Node):
         else:
             return self.__default_name
 
+    @name.setter
+    def name(self, value: str) -> None:
+        if self.is_tracking:
+            self.layer.name = value
+
     def __init__(
         self,
         layer_ptr: Optional[Layer] = None,

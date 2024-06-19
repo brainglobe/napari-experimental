@@ -11,7 +11,6 @@ from qtpy.QtWidgets import QPushButton, QVBoxLayout, QWidget
 
 from napari_experimental.group_layer import GroupLayer, NodeWrappingLayer
 from napari_experimental.group_layer_qt import (
-    QtGroupLayerModel,
     QtGroupLayerView,
 )
 
@@ -31,9 +30,6 @@ class GroupLayerWidget(QWidget):
         self.viewer = viewer
 
         self.group_layers = GroupLayer(self.global_layers)
-        self.group_layers_model = QtGroupLayerModel(
-            self.group_layers, parent=self
-        )
         self.group_layers_view = QtGroupLayerView(
             self.group_layers, parent=self
         )
@@ -58,7 +54,7 @@ class GroupLayerWidget(QWidget):
         """
         When the user clicks an item in the tree, this function runs
         """
-        the_node = self.group_layers_model.getItem(selected_index)
+        the_node = self.group_layers_view.model().getItem(selected_index)
         if isinstance(the_node, GroupLayer):
             pass
         elif isinstance(the_node, NodeWrappingLayer):

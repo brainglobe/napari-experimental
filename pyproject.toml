@@ -26,7 +26,7 @@ dynamic = ["version"]
 napari-experimental = "napari_experimental:napari.yaml"
 
 [project.optional-dependencies]
-dev = ["tox", "pytest", "pytest-cov", "pytest-qt"]
+dev = ["tox", "pytest", "pytest-cov", "pytest-qt", "pre-commit"]
 
 [project.urls]
 "Bug Tracker" = "https://github.com/alessandrofelder/napari-experimental/issues"
