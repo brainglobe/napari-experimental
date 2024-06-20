@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Dict, Generator
 
 from napari._qt.containers import QtNodeTreeModel, QtNodeTreeView
 from qtpy.QtCore import QModelIndex, Qt
@@ -14,9 +14,16 @@ if TYPE_CHECKING:
 
 class QtGroupLayerModel(QtNodeTreeModel[GroupLayer]):
 
+    @property
+    def root_index(self) -> QModelIndex:
+        return self.nestedIndex(())
+
     def __init__(self, root: GroupLayer, parent: QWidget = None):
         super().__init__(root, parent)
         self.setRoot(root)
+
+    def __iter__(self):
+        yield from self.traverse(self.root_index)
 
     def data(self, index: QModelIndex, role: Qt.ItemDataRole):
         """Return data stored under ``role`` for the item at ``index``.
@@ -89,16 +96,52 @@ class QtGroupLayerModel(QtNodeTreeModel[GroupLayer]):
 
         :param index: Model index to fetch flattened index of.
         """
-        if index.model() is not self:
+        if index.model() is None:
+            # Reached the top of the tree
+            return -1
+        elif index.model() is not self:
             raise IndexError("QModelIndex supplied is not for this model.")
 
         flat_index = index.row() + 1
         parent = index.parent()
 
         for child_number in range(index.row()):
+            # Index must be bumped by the number of children this child has,
+            # before returning.
             flat_index += self.nChildren(self.index(child_number, 0, parent))
 
         return flat_index + self.flattenedIndex(parent)
+
+    def flattenedIndexLookup(self) -> Dict[int, QModelIndex]:
+        """
+        Return a dictionary that maps between flattened indices and the
+        QModelIndex-es used internally by the model.
+
+        Key: Value pairs are flattened index (int): model index (QModelIndex).
+        """
+        lookup_table = {self.flattenedIndex(index): index for index in self}
+        return lookup_table
+
+    def traverse(
+        self, index: QModelIndex
+    ) -> Generator[QModelIndex, None, None]:
+        """
+        Iterates over the QModelIndex-es of the items in the model,
+        starting from the index provided and recursing through that
+        item's branch.
+
+        If index points to a Node, only that Node's index is yielded.
+        If index points to a Group, the group's index, followed by the
+        index-es of its children (and children's children, etc) are yielded.
+
+        :param index: Model index to begin recursion from.
+        """
+        if index.isValid():
+            yield index
+
+        if self.hasChildren(index):
+            for child in range(self.rowCount(index)):
+                yield from self.traverse(self.index(child, 0, index))
 
 
 class QtGroupLayerView(QtNodeTreeView):
@@ -123,3 +166,6 @@ class QtGroupLayerView(QtNodeTreeView):
         self.model().rowsRemoved.connect(self._redecorate_root)
         self.model().rowsInserted.connect(self._redecorate_root)
         self._redecorate_root()
+
+    def model(self) -> QtGroupLayerModel:
+        return super().model()
