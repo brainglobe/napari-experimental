@@ -32,7 +32,7 @@ pip install napari-experimental
 To install the latest development version:
 
 ```bash
-pip install git+https://github.com/alessandrofelder/napari-experimental.git
+pip install git+https://github.com/brainglobe/napari-experimental.git
 ```
 
 You can also install a version of the package that uses the latest version of napari (fetched from <https://github.com/napari/napari>):
