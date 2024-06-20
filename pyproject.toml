@@ -67,7 +67,9 @@ fix = true
 [tool.tox]
 legacy_tox_ini = """
 [tox]
-envlist = py{39,310,311}-{linux,macos,windows}
+envlist =
+    py{39,310,311}-{linux,macos,windows},
+    napari-latest
 isolated_build=true
 
 [gh-actions]
@@ -97,4 +99,7 @@ passenv =
 extras =
     dev
 commands = pytest -v --color=yes --cov=napari_experimental --cov-report=xml
+
+[testenv:napari-latest]
+extras = dev, napari-latest
 """

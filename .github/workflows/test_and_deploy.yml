@@ -75,17 +75,11 @@ jobs:
           python-version: '3.11'
           cache: "pip"
 
-      - name: Install plugin
-        run: pip install .[dev]
+      - name: Install tox
+        run: pip install tox
 
-      - name: Install napari from repo HEAD
-        run: pip install git+https://github.com/napari/napari.git
-
-      - name: Run test suite
-        run: pytest -vv tests/
-        # Need to use pytest here since tox will create a build
-        # envrionment that will install napari latest release,
-        # not HEAD of main!
+      - name: Run tox on napari-latest
+        run: tox -vv -e napari-latest
 
   build_sdist_wheel:
     name: Build source distribution wheel
