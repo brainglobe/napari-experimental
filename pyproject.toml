@@ -26,7 +26,7 @@ dynamic = ["version"]
 napari-experimental = "napari_experimental:napari.yaml"
 
 [project.optional-dependencies]
-dev = ["tox", "pytest", "pytest-cov", "pytest-qt"]
+dev = ["tox", "pytest", "pytest-cov", "pytest-qt", "pre-commit"]
 napari-latest = ["napari @ git+https://github.com/napari/napari.git"]
 
 [project.urls]

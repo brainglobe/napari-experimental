@@ -42,6 +42,11 @@ class NodeWrappingLayer(Node):
         else:
             return self.__default_name
 
+    @name.setter
+    def name(self, value: str) -> None:
+        if self.is_tracking:
+            self.layer.name = value
+
     def __init__(
         self,
         layer_ptr: Optional[Layer] = None,
@@ -63,9 +68,13 @@ class GroupLayer(Group[NodeWrappingLayer]):
         Group.__init__(
             self,
             children=(NodeWrappingLayer(layer) for layer in current_layers),
-            name=f"GroupLayer-{random_string()}",
+            name=random_string(),
             basetype=NodeWrappingLayer,
         )
+
+    def _node_name(self) -> str:
+        """Will be used when rendering node tree as string."""
+        return f"GL-{self.name}"
 
     def _check_already_tracking(self, layer_ptr: Layer) -> bool:
         """
