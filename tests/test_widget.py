@@ -47,3 +47,16 @@ def test_rename_layer(group_layer_widget):
     group_layers_model.setData(node_index, new_name)
     assert group_layers_model.getItem(node_index).name == new_name
     assert group_layers_model.getItem(node_index)._node_name() == new_name
+
+
+def test_double_click_edit(group_layer_widget, double_click_on_view):
+    """Check that the view enters editing state when an item is
+    double-clicked"""
+    group_layers_view = group_layer_widget.group_layers_view
+    group_layers_model = group_layers_view.model()
+    assert group_layers_view.state() == group_layers_view.NoState
+
+    # Check enters editing state on double click
+    node_index = group_layers_model.index(0, 0)
+    double_click_on_view(group_layers_view, node_index)
+    assert group_layers_view.state() == group_layers_view.EditingState
