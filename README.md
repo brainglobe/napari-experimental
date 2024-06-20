@@ -25,24 +25,30 @@ https://napari.org/stable/plugins/index.html
 
 You can install `napari-experimental` via [pip]:
 
-    pip install napari-experimental
+```bash
+pip install napari-experimental
+```
 
+To install the latest development version:
 
+```bash
+pip install git+https://github.com/brainglobe/napari-experimental.git
+```
 
-To install latest development version :
+You can also install a version of the package that uses the latest version of napari (fetched from <https://github.com/napari/napari>):
 
-    pip install git+https://github.com/alessandrofelder/napari-experimental.git
-
+```bash
+pip install napari-experimental[napari-latest]
+```
 
 ## Contributing
 
-Contributions are very welcome. Tests can be run with [tox], please ensure
-the coverage at least stays the same before you submit a pull request.
+Contributions are very welcome.
+Tests can be run with [tox], please ensure the coverage at least stays the same before you submit a pull request.
 
 ## License
 
-Distributed under the terms of the [BSD-3] license,
-"napari-experimental" is free and open source software
+Distributed under the terms of the [BSD-3] license, "napari-experimental" is free and open source software
 
 ## Issues
 
@@ -59,7 +65,7 @@ If you encounter any problems, please [file an issue] along with a detailed desc
 [Mozilla Public License 2.0]: https://www.mozilla.org/media/MPL/2.0/index.txt
 [cookiecutter-napari-plugin]: https://github.com/napari/cookiecutter-napari-plugin
 
-[file an issue]: https://github.com/alessandrofelder/napari-experimental/issues
+[file an issue]: https://github.com/brainglobe/napari-experimental/issues
 
 [napari]: https://github.com/napari/napari
 [tox]: https://tox.readthedocs.io/en/latest/
