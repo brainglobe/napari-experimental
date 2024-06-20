@@ -27,6 +27,7 @@ napari-experimental = "napari_experimental:napari.yaml"
 
 [project.optional-dependencies]
 dev = ["tox", "pytest", "pytest-cov", "pytest-qt"]
+napari-latest = ["napari @ git+https://github.com/napari/napari.git"]
 
 [project.urls]
 "Bug Tracker" = "https://github.com/alessandrofelder/napari-experimental/issues"
