@@ -25,7 +25,11 @@ class GroupLayer(Group[GroupLayerNode], GroupLayerNode):
 
     @property
     def name(self) -> str:
-        return f"GL-{self._name}"
+        return self._name
+
+    @name.setter
+    def name(self, value: str) -> None:
+        self._name = value
 
     def __init__(
         self,
@@ -72,6 +76,10 @@ class GroupLayer(Group[GroupLayerNode], GroupLayerNode):
             if not node.is_group() and node.layer is layer_ptr:
                 return True
         return False
+
+    def _node_name(self) -> str:
+        """Will be used when rendering node tree as string."""
+        return f"GL-{self.name}"
 
     def add_new_item(
         self,

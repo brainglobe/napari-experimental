@@ -1,6 +1,6 @@
 import pytest
 from napari_experimental._widget import GroupLayerWidget
-from napari_experimental.group_layer import GroupLayer, NodeWrappingLayer
+from napari_experimental.group_layer import GroupLayer, GroupLayerNode
 from qtpy.QtWidgets import QWidget
 
 
@@ -45,7 +45,7 @@ def test_rename_layer(group_layer_widget):
     # Check current name
     node_index = group_layers_model.index(0, 0)
     node = group_layers_model.getItem(node_index)
-    assert isinstance(node, NodeWrappingLayer)
+    assert isinstance(node, GroupLayerNode)
     assert node.name == "blobs"
 
     # Rename
