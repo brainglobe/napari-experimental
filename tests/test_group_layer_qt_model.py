@@ -17,16 +17,14 @@ def flat_model(group_layer_data: GroupLayer) -> QtGroupLayerModel:
 
 
 def test_qt_group_layer_model(nested_model, flat_model, qtmodeltester) -> None:
-    flat = QtGroupLayerModel(root=flat_model)
-    qtmodeltester.check(flat)
-
-    nested = QtGroupLayerModel(root=nested_model)
-    qtmodeltester.check(nested)
+    qtmodeltester.check(flat_model)
+    qtmodeltester.check(nested_model)
 
 
 def test_iter_and_traverse(
     nested_model: QtGroupLayerModel,
     nested_layer_group: GroupLayer,
+    qtmodeltester,
 ) -> None:
     """
     Test that requesting i in QtGroupLayerModel iterates through the
@@ -35,6 +33,7 @@ def test_iter_and_traverse(
     Validate that the returned indices match 1:1 with the underlying
     data structure objects.
     """
+    qtmodeltester.check(nested_model)
     generated_items = [index for index in nested_model]
 
     assert len(generated_items) == nested_layer_group.n_items_in_tree, (
