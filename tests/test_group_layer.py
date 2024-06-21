@@ -1,5 +1,7 @@
-from typing import Callable
+from typing import Callable, Dict
 
+import pytest
+from napari.layers import Points
 from napari_experimental.group_layer import GroupLayer
 from napari_experimental.group_layer_node import GroupLayerNode
 
@@ -9,8 +11,8 @@ def recursively_apply_function(
 ) -> None:
     """
     Recursively apply a function to all members of a GroupLayer, and then all
-    subtrees of that GroupLayer. Functions are intended to conduct the necessary
-    assertions for a particular test.
+    subtrees of that GroupLayer. Functions are intended to conduct the
+    necessary assertions for a particular test.
     """
     func(group_layer)
 
@@ -20,7 +22,7 @@ def recursively_apply_function(
         recursively_apply_function(branch, func)
 
 
-def test_group_layer_types(nested_group_data: GroupLayer) -> None:
+def test_group_layer_types(nested_layer_group: GroupLayer) -> None:
     """
     Check that everything stored in a GroupLayer is a GroupLayerNode,
     and that any child GroupLayers also adhere to this structure.
@@ -36,10 +38,10 @@ def test_group_layer_types(nested_group_data: GroupLayer) -> None:
                 item, GroupLayerNode
             ), f"{item} in {group_layer} is not a GroupLayerNode instance."
 
-    recursively_apply_function(nested_group_data, assert_correct_types)
+    recursively_apply_function(nested_layer_group, assert_correct_types)
 
 
-def test_is_group(nested_group_data: GroupLayer) -> None:
+def test_is_group(nested_layer_group: GroupLayer) -> None:
     """
     Check that GroupLayer instances always return True
     from their is_group() method.
@@ -55,4 +57,31 @@ def test_is_group(nested_group_data: GroupLayer) -> None:
         ]:
             assert not node.is_group()
 
-    recursively_apply_function(nested_group_data, assert_correct_is_group)
+    recursively_apply_function(nested_layer_group, assert_correct_is_group)
+
+
+@pytest.mark.parametrize(
+    ["layer_key", "recursive", "expected_result"],
+    [
+        pytest.param("A0", True, True, id="Depth 1, recurse True"),
+        pytest.param("AA0", True, True, id="Depth 2, recurse True"),
+        pytest.param("A0", False, False, id="Depth 1, recurse False"),
+        pytest.param("1", False, True, id="Depth 0, recurse False"),
+    ],
+)
+def test_check_is_already_tracking(
+    nested_layer_group: GroupLayer,
+    collection_of_layers: Dict[str, Points],
+    layer_key: str,
+    recursive: bool,
+    expected_result: bool,
+):
+    assert (
+        nested_layer_group._check_already_tracking(
+            layer_ptr=collection_of_layers[layer_key], recursive=recursive
+        )
+        == expected_result
+    ), (
+        f"Incorrect result (expected {expected_result}) "
+        f"for _check_already_tracking (with recursive = {recursive})"
+    )

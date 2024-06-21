@@ -41,7 +41,10 @@ class GroupLayer(Group[GroupLayerNode], GroupLayerNode):
         # We have to be careful about calling super() on methods inherited from
         # Node though.
         GroupLayerNode.__init__(self, layer_ptr=None)
-        assert self.layer is None, "GroupLayers do not track individual layers through the .layer property."
+        assert self.layer is None, (
+            "GroupLayers do not track individual "
+            "layers through the .layer property."
+        )
 
         items_after_casting_layers = [
             GroupLayerNode(item) if isinstance(item, Layer) else item
@@ -61,7 +64,9 @@ class GroupLayer(Group[GroupLayerNode], GroupLayerNode):
             basetype=GroupLayerNode,
         )
 
-    def _check_already_tracking(self, layer_ptr: Layer) -> bool:
+    def _check_already_tracking(
+        self, layer_ptr: Layer, recursive: bool = True
+    ) -> bool:
         """
         Return TRUE if the layer provided is already being tracked
         by a Node in this tree.
@@ -71,10 +76,15 @@ class GroupLayer(Group[GroupLayerNode], GroupLayerNode):
 
         :param layer_ptr: Reference to the Layer to determine is in the
         model.
+        :param recurse: If True, then all sub-trees of the tree will be checked
+        for the given Layer, returning True if it is found at any depth.
         """
-        for node in self:
-            if not node.is_group() and node.layer is layer_ptr:
+        for item in self:
+            if not item.is_group() and item.layer is layer_ptr:
                 return True
+            elif item.is_group() and recursive:
+                if item._check_already_tracking(layer_ptr, recursive=True):
+                    return True
         return False
 
     def _node_name(self) -> str:

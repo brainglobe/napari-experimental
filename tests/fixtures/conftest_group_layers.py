@@ -23,7 +23,7 @@ def group_layer_data(points_layer, image_layer) -> GroupLayer:
 
 
 @pytest.fixture(scope="function")
-def nested_group_data(points_layer) -> GroupLayer:
+def nested_layer_group(collection_of_layers) -> GroupLayer:
     """
     Creates a GroupLayer container with the following structure:
 
@@ -39,19 +39,14 @@ def nested_group_data(points_layer) -> GroupLayer:
     - Group_B
       - Points_B0
     """
-    points_aa0 = return_copy_with_new_name(points_layer, "Points_AA0")
-    points_aa1 = return_copy_with_new_name(points_layer, "Points_AA1")
-    group_aa = GroupLayer(points_aa0, points_aa1)
-
-    points_a0 = return_copy_with_new_name(points_layer, "Points_A0")
-    points_a1 = return_copy_with_new_name(points_layer, "Points_A1")
-    group_a = GroupLayer(points_a0, group_aa, points_a1)
-
-    points_b0 = return_copy_with_new_name(points_layer, "Points_B0")
-    group_b = GroupLayer(points_b0)
-
-    points_0 = return_copy_with_new_name(points_layer, "Points_0")
-    points_1 = return_copy_with_new_name(points_layer, "Points_1")
-
-    root = GroupLayer(points_0, group_a, points_1, group_b)
+    group_aa = GroupLayer(
+        collection_of_layers["AA0"], collection_of_layers["AA1"]
+    )
+    group_a = GroupLayer(
+        collection_of_layers["A0"], group_aa, collection_of_layers["A1"]
+    )
+    group_b = GroupLayer(collection_of_layers["B0"])
+    root = GroupLayer(
+        collection_of_layers["0"], group_a, collection_of_layers["1"], group_b
+    )
     return root
