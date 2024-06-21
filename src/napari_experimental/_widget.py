@@ -10,6 +10,9 @@ from qtpy.QtCore import QModelIndex
 from qtpy.QtWidgets import QPushButton, QVBoxLayout, QWidget
 
 from napari_experimental.group_layer import GroupLayer, NodeWrappingLayer
+from napari_experimental.group_layer_controls import (
+    QtGroupLayerControlsContainer,
+)
 from napari_experimental.group_layer_qt import (
     QtGroupLayerView,
 )
@@ -33,11 +36,14 @@ class GroupLayerWidget(QWidget):
         self.group_layers_view = QtGroupLayerView(
             self.group_layers, parent=self
         )
+        self.group_layers_controls = QtGroupLayerControlsContainer(
+            self.viewer, self.group_layers
+        )
 
         self.global_layers.events.inserted.connect(self._new_layer)
         self.global_layers.events.removed.connect(self._removed_layer)
 
-        self.group_layers_view.clicked.connect(self._item_selected_in_view)
+        # self.group_layers_view.clicked.connect(self._item_selected_in_view)
 
         self.add_group_button = QPushButton("Add empty layer group")
         self.add_group_button.clicked.connect(self._new_layer_group)
@@ -46,6 +52,7 @@ class GroupLayerWidget(QWidget):
         self.enter_debugger.clicked.connect(self._enter_debug)
 
         self.setLayout(QVBoxLayout())
+        self.layout().addWidget(self.group_layers_controls)
         self.layout().addWidget(self.enter_debugger)
         self.layout().addWidget(self.add_group_button)
         self.layout().addWidget(self.group_layers_view)
