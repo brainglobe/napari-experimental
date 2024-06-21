@@ -1,3 +1,5 @@
+from typing import Tuple
+
 import pytest
 from napari_experimental.group_layer import GroupLayer
 from napari_experimental.group_layer_qt import QtGroupLayerModel
@@ -57,3 +59,36 @@ def test_iter_and_traverse(
             assert item in all_group_items
         else:
             assert item in all_tree_items
+
+
+@pytest.mark.parametrize(
+    ["nested_index_of_item", "expected_flat_index"],
+    [
+        pytest.param((0,), 0, id="Points_0"),
+        pytest.param((1,), 1, id="Group_A"),
+        pytest.param((1, 0), 2, id="Points_A0"),
+        pytest.param((1, 1), 3, id="Group_AA"),
+        pytest.param((1, 1, 0), 4, id="Points_AA0"),
+        pytest.param((1, 1, 1), 5, id="Group_AA1"),
+        pytest.param((1, 2), 6, id="Points_A1"),
+        pytest.param((2,), 7, id="Points_1"),
+        pytest.param((3,), 8, id="Group_B"),
+        pytest.param((3, 0), 9, id="Points_B0"),
+    ],
+)
+def test_flatindex_to_index(
+    nested_model: QtGroupLayerModel,
+    nested_index_of_item: Tuple[int, ...],
+    expected_flat_index: int,
+) -> None:
+    """
+    Using the structure of the nested_layer_group model, check that the flat
+    index-es map to the correct model items.
+
+    Recall the structure of the nested_layer_group fixture for explanation of
+    the parametrisation.
+    """
+    assert (
+        nested_model.nestedIndex(nested_index_of_item)
+        == nested_model.flatindex_to_index[expected_flat_index]
+    )

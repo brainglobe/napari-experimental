@@ -18,6 +18,16 @@ class QtGroupLayerModel(QtNodeTreeModel[GroupLayer]):
     def root_index(self) -> QModelIndex:
         return self.nestedIndex(())
 
+    @property
+    def flatindex_to_index(self) -> Dict[int, QModelIndex]:
+        """
+        Return a dictionary that maps between flattened indices and the
+        QModelIndex-es used internally by the model.
+
+        Key: Value pairs are flattened index (int): model index (QModelIndex).
+        """
+        return {self.flattenedIndex(index): index for index in self}
+
     def __init__(self, root: GroupLayer, parent: QWidget = None):
         super().__init__(root, parent)
         self.setRoot(root)
@@ -111,16 +121,6 @@ class QtGroupLayerModel(QtNodeTreeModel[GroupLayer]):
             flat_index += self.nChildren(self.index(child_number, 0, parent))
 
         return flat_index + self.flattenedIndex(parent)
-
-    def flattenedIndexLookup(self) -> Dict[int, QModelIndex]:
-        """
-        Return a dictionary that maps between flattened indices and the
-        QModelIndex-es used internally by the model.
-
-        Key: Value pairs are flattened index (int): model index (QModelIndex).
-        """
-        lookup_table = {self.flattenedIndex(index): index for index in self}
-        return lookup_table
 
     def traverse(
         self, index: QModelIndex
