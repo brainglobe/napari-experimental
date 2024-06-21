@@ -9,7 +9,7 @@ from napari.utils.events import Event
 from qtpy.QtCore import QModelIndex
 from qtpy.QtWidgets import QPushButton, QVBoxLayout, QWidget
 
-from napari_experimental.group_layer import GroupLayer, NodeWrappingLayer
+from napari_experimental.group_layer import GroupLayer, GroupLayerNode
 from napari_experimental.group_layer_qt import (
     QtGroupLayerView,
 )
@@ -29,7 +29,7 @@ class GroupLayerWidget(QWidget):
 
         self.viewer = viewer
 
-        self.group_layers = GroupLayer(self.global_layers)
+        self.group_layers = GroupLayer(*self.global_layers)
         self.group_layers_view = QtGroupLayerView(
             self.group_layers, parent=self
         )
@@ -57,10 +57,9 @@ class GroupLayerWidget(QWidget):
         the_node = self.group_layers_view.model().getItem(selected_index)
         if isinstance(the_node, GroupLayer):
             pass
-        elif isinstance(the_node, NodeWrappingLayer):
+        elif isinstance(the_node, GroupLayerNode):
             the_layer: Layer = the_node.layer
             self.global_layers.selection.select_only(the_layer)
-        pass
 
     def _new_layer_group(self) -> None:
         """ """
