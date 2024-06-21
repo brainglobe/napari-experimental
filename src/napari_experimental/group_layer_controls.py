@@ -9,12 +9,15 @@ from qtpy.QtCore import Qt
 from qtpy.QtWidgets import QFrame, QHBoxLayout, QLabel
 
 from napari_experimental.group_layer import GroupLayer
+from napari_experimental.group_layer_node import GroupLayerNode
 
 if TYPE_CHECKING:
     import napari
 
 
 class QtGroupLayerControls(QFrame):
+    """Group layer controls - for now, this just displays a message to the
+    user"""
 
     def __init__(self) -> None:
         super().__init__()
@@ -43,16 +46,23 @@ class QtGroupLayerControlsContainer(QtLayerControlsContainer):
         self.viewer.layers.events.removed.disconnect(self._remove)
         self.viewer.layers.selection.events.active.disconnect(self._display)
 
-        for item in group_layers:
-            # TODO - needs to recurse into groups
-            event = Event(type_name="inserted")
-            event.value = item
-            self._add(event)
+        # Initialise controls for any layers already present in group_layers
+        self._initialise_controls(group_layers)
+        self._display_item(group_layers.selection.active)
 
-        # Respond to changes in group layers
+        # Sync with changes to group layers
         group_layers.events.inserted.connect(self._add)
         group_layers.events.removed.connect(self._remove)
         group_layers.selection.events.active.connect(self._display)
+
+    def _initialise_controls(self, group_layers):
+        """Initialise controls for any items already present in group
+        layers"""
+        for item in group_layers:
+            if item.is_group():
+                self._initialise_controls(item)
+
+            self._add_item(item)
 
     def _add(self, event: Event):
         """Add the controls target item to the list of control widgets.
@@ -63,10 +73,13 @@ class QtGroupLayerControlsContainer(QtLayerControlsContainer):
             Event with the target item at `event.value`.
         """
         item = event.value
+        self._add_item(item)
+
+    def _add_item(self, item: GroupLayer | GroupLayerNode):
         if item.is_group():
             controls = QtGroupLayerControls()
         else:
-            layer = event.value.layer
+            layer = item.layer
             controls = create_qt_layer_controls(layer)
 
         controls.ndisplay = self.viewer.dims.ndisplay
@@ -82,6 +95,9 @@ class QtGroupLayerControlsContainer(QtLayerControlsContainer):
             Event with the target item at `event.value`.
         """
         item = event.value
+        self._display_item(item)
+
+    def _display_item(self, item: GroupLayer | GroupLayerNode | None):
         if item is None:
             self.setCurrentWidget(self.empty_widget)
         else:

@@ -42,8 +42,6 @@ class GroupLayerWidget(QWidget):
         self.global_layers.events.inserted.connect(self._new_layer)
         self.global_layers.events.removed.connect(self._removed_layer)
 
-        # self.group_layers_view.clicked.connect(self._item_selected_in_view)
-
         self.add_group_button = QPushButton("Add empty layer group")
         self.add_group_button.clicked.connect(self._new_layer_group)
 
