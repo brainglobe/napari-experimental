@@ -6,10 +6,9 @@ from typing import TYPE_CHECKING, Tuple
 from napari.components import LayerList
 from napari.layers import Layer
 from napari.utils.events import Event
-from qtpy.QtCore import QModelIndex
 from qtpy.QtWidgets import QPushButton, QVBoxLayout, QWidget
 
-from napari_experimental.group_layer import GroupLayer, GroupLayerNode
+from napari_experimental.group_layer import GroupLayer
 from napari_experimental.group_layer_controls import (
     QtGroupLayerControlsContainer,
 )
@@ -56,17 +55,6 @@ class GroupLayerWidget(QWidget):
         self.layout().addWidget(self.enter_debugger)
         self.layout().addWidget(self.add_group_button)
         self.layout().addWidget(self.group_layers_view)
-
-    def _item_selected_in_view(self, selected_index: QModelIndex) -> None:
-        """
-        When the user clicks an item in the tree, this function runs
-        """
-        the_node = self.group_layers_view.model().getItem(selected_index)
-        if isinstance(the_node, GroupLayer):
-            pass
-        elif isinstance(the_node, GroupLayerNode):
-            the_layer: Layer = the_node.layer
-            self.global_layers.selection.select_only(the_layer)
 
     def _new_layer_group(self) -> None:
         """ """
