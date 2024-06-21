@@ -77,3 +77,8 @@ def collection_of_layers(points_layer) -> Dict[str, Points]:
         key: return_copy_with_new_name(points_layer, f"Points_{key}")
         for key in ["0", "A0", "A1", "AA0", "AA1", "1", "B0"]
     }
+
+
+@pytest.fixture(scope="function")
+def n_layers_in_collection(collection_of_layers: Dict[str, Points]) -> int:
+    return len(collection_of_layers)

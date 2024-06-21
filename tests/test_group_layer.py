@@ -1,4 +1,4 @@
-from typing import Callable, Dict
+from typing import Any, Callable, Dict
 
 import pytest
 from napari.layers import Points
@@ -8,7 +8,7 @@ from napari_experimental.group_layer_node import GroupLayerNode
 
 def recursively_apply_function(
     group_layer: GroupLayer, func: Callable[[GroupLayer], None]
-) -> None:
+) -> Any:
     """
     Recursively apply a function to all members of a GroupLayer, and then all
     subtrees of that GroupLayer. Functions are intended to conduct the
@@ -39,6 +39,17 @@ def test_group_layer_types(nested_layer_group: GroupLayer) -> None:
             ), f"{item} in {group_layer} is not a GroupLayerNode instance."
 
     recursively_apply_function(nested_layer_group, assert_correct_types)
+
+
+def test_n_items_in_tree(
+    nested_layer_group: GroupLayer, group_layer_data: GroupLayer
+) -> None:
+    """
+    Check that querying the length of a Tree returns the number of items
+    in the whole tree (including branches).
+    """
+    assert nested_layer_group.n_items_in_tree == 10
+    assert group_layer_data.n_items_in_tree == 2
 
 
 def test_is_group(nested_layer_group: GroupLayer) -> None:

@@ -1,7 +1,8 @@
 from copy import deepcopy
-from typing import Any
+from typing import Any, Dict
 
 import pytest
+from napari.layers import Image, Points
 from napari_experimental.group_layer import GroupLayer
 
 
@@ -18,12 +19,12 @@ def return_copy_with_new_name(obj: Any, new_name: str = "Copy") -> Any:
 
 
 @pytest.fixture(scope="function")
-def group_layer_data(points_layer, image_layer) -> GroupLayer:
+def group_layer_data(points_layer: Points, image_layer: Image) -> GroupLayer:
     return GroupLayer(points_layer, image_layer)
 
 
 @pytest.fixture(scope="function")
-def nested_layer_group(collection_of_layers) -> GroupLayer:
+def nested_layer_group(collection_of_layers: Dict[str, Points]) -> GroupLayer:
     """
     Creates a GroupLayer container with the following structure:
 

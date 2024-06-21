@@ -24,6 +24,19 @@ class GroupLayer(Group[GroupLayerNode], GroupLayerNode):
     """
 
     @property
+    def n_items_in_tree(self) -> int:
+        """
+        Number of items in the Tree structure, recursing into Nodes that
+        are also Groups and counting those elements too.
+        """
+        n_items = 0
+        for item in self:
+            n_items += 1
+            if item.is_group():
+                n_items += item.n_items_in_tree
+        return n_items
+
+    @property
     def name(self) -> str:
         return self._name
 
