@@ -76,7 +76,7 @@ class GroupLayer(Group[GroupLayerNode], GroupLayerNode):
 
         :param layer_ptr: Reference to the Layer to determine is in the
         model.
-        :param recurse: If True, then all sub-trees of the tree will be checked
+        :param recursive: If True, then all sub-trees of the tree will be checked
         for the given Layer, returning True if it is found at any depth.
         """
         for item in self:
