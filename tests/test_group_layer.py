@@ -7,6 +7,11 @@ from napari_experimental.group_layer_node import GroupLayerNode
 def recursively_apply_function(
     group_layer: GroupLayer, func: Callable[[GroupLayer], None]
 ) -> None:
+    """
+    Recursively apply a function to all members of a GroupLayer, and then all
+    subtrees of that GroupLayer. Functions are intended to conduct the necessary
+    assertions for a particular test.
+    """
     func(group_layer)
 
     for branch in [

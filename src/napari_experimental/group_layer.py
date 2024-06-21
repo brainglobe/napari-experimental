@@ -41,7 +41,7 @@ class GroupLayer(Group[GroupLayerNode], GroupLayerNode):
         # We have to be careful about calling super() on methods inherited from
         # Node though.
         GroupLayerNode.__init__(self, layer_ptr=None)
-        assert self.layer is None, "GroupLayers cannot track layers!"
+        assert self.layer is None, "GroupLayers do not track individual layers through the .layer property."
 
         items_after_casting_layers = [
             GroupLayerNode(item) if isinstance(item, Layer) else item
