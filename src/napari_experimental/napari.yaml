@@ -3,28 +3,12 @@ display_name: Napari experimental
 # use 'hidden' to remove plugin from napari hub search results
 visibility: public
 # see https://napari.org/stable/plugins/manifest.html for valid categories
-categories: ["Annotation", "Segmentation", "Acquisition"]
+categories: []
 contributions:
   commands:
-    - id: napari-experimental.make_container_widget
-      python_name: napari_experimental:ImageThreshold
-      title: Make threshold Container widget
-    - id: napari-experimental.make_magic_widget
-      python_name: napari_experimental:threshold_magic_widget
-      title: Make threshold magic widget
-    - id: napari-experimental.make_function_widget
-      python_name: napari_experimental:threshold_autogenerate_widget
-      title: Make threshold function widget
-    - id: napari-experimental.make_qwidget
-      python_name: napari_experimental:ExampleQWidget
-      title: Make ExampleQWidget
+    - id: napari-experimental.make_group_layer_widget
+      python_name: napari_experimental:GroupLayerWidget
+      title: Make group layers widget
   widgets:
-    - command: napari-experimental.make_container_widget
-      display_name: Container Threshold
-    - command: napari-experimental.make_magic_widget
-      display_name: Magic Threshold
-    - command: napari-experimental.make_function_widget
-      autogenerate: true
-      display_name: Autogenerate Threshold
-    - command: napari-experimental.make_qwidget
-      display_name: Example QWidget
+    - command: napari-experimental.make_group_layer_widget
+      display_name: Show Grouped Layers

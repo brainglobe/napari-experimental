@@ -55,9 +55,35 @@ jobs:
           python-version: ${{ matrix.python-version }}
           secret-codecov-token: ${{ secrets.CODECOV_TOKEN }}
 
+  napari-latest-test:
+    needs: [linting, manifest]
+    name: Run tests using HEAD of napari main branch
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup qtpy libraries
+        uses: tlambert03/setup-qt-libs@v1
+
+      - name: Setup VTK headless display
+        uses: pyvista/setup-headless-display-action@v2
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: "pip"
+
+      - name: Install tox
+        run: pip install tox
+
+      - name: Run tox on napari-latest
+        run: tox -vv -e napari-latest
+
   build_sdist_wheel:
     name: Build source distribution wheel
-    needs: [test]
+    needs: [test, napari-latest-test]
     if: github.event_name == 'push' && github.ref_type == 'tag'
     runs-on: ubuntu-latest
     steps:
