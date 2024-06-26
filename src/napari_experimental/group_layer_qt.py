@@ -9,7 +9,7 @@ from qtpy.QtCore import QModelIndex, QSize, Qt
 from qtpy.QtGui import QImage
 
 from napari_experimental.group_layer import GroupLayer
-from napari_experimental.GroupLayerDelegate import GroupLayerDelegate
+from napari_experimental.group_layer_delegate import GroupLayerDelegate
 
 if TYPE_CHECKING:
     from qtpy.QtWidgets import QWidget
