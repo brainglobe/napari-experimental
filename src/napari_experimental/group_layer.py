@@ -4,9 +4,11 @@ import random
 import string
 from typing import Optional
 
+from napari._app_model.context import create_context
 from napari.layers import Layer
 from napari.utils.tree import Group
 
+from napari_experimental.group_layer_context import GroupLayerContextKeys
 from napari_experimental.group_layer_node import GroupLayerNode
 
 
@@ -63,6 +65,21 @@ class GroupLayer(Group[GroupLayerNode], GroupLayerNode):
             name=random_string(),
             basetype=GroupLayerNode,
         )
+
+        # Match context creation of layerlist init
+        self._ctx = create_context(self)
+        if self._ctx is not None:  # happens during Viewer type creation
+            self._ctx_keys = GroupLayerContextKeys(self._ctx)
+            self.selection.events.changed.connect(self._ctx_keys.update)
+        self.selection.events.changed.connect(self._on_selection_changed)
+
+    def _on_selection_changed(self, event):
+        for item in event.added:
+            if not item.is_group():
+                item.layer._on_selection(True)
+        for item in event.removed:
+            if not item.is_group():
+                item.layer._on_selection(False)
 
     def _check_already_tracking(
         self, layer_ptr: Layer, recursive: bool = True

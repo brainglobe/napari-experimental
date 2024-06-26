@@ -13,8 +13,9 @@ from napari._qt.qt_resources import QColoredSVGIcon
 from qtpy.QtCore import QPoint, QSize, Qt
 from qtpy.QtGui import QMouseEvent, QPixmap
 
+from napari_experimental.group_layer import GroupLayer
+
 if TYPE_CHECKING:
-    from napari.components.layerlist import LayerList
     from qtpy import QtCore
     from qtpy.QtWidgets import QStyleOptionViewItem
 
@@ -78,23 +79,11 @@ class GroupLayerDelegate(LayerDelegate):
 
         This can be used to customize how the delegate handles mouse/key events
         """
-        if (
-            event.type() == QMouseEvent.MouseButtonRelease
-            and event.button() == Qt.MouseButton.RightButton
-        ):
-            pnt = (
-                event.globalPosition().toPoint()
-                if hasattr(event, "globalPosition")
-                else event.globalPos()
-            )
-
-            self.show_context_menu(index, model, pnt, option.widget)
-
         # if the user clicks quickly on the visibility checkbox, we *don't*
         # want it to be interpreted as a double-click. Ignore this event
         if event.type() == QMouseEvent.MouseButtonDblClick:
             return True
-        # refer all other events to the QStyledItemDelegate
+        # refer all other events to LayerDelegate
         return super().editorEvent(event, model, option, index)
 
     def show_context_menu(self, index, model, pos: QPoint, parent):
@@ -106,6 +95,6 @@ class GroupLayerDelegate(LayerDelegate):
                 MenuId.LAYERLIST_CONTEXT, parent=parent
             )
 
-        layer_list: LayerList = model.sourceModel()._root
-        self._context_menu.update_from_context(get_context(layer_list))
+        group_layer: GroupLayer = model._root
+        self._context_menu.update_from_context(get_context(group_layer))
         self._context_menu.exec_(pos)
