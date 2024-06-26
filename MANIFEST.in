@@ -6,5 +6,9 @@ exclude .pre-commit-config.yaml
 recursive-exclude * __pycache__
 recursive-exclude * *.py[co]
 
+recursive-include src *.qss
+recursive-include src *.svg
+
+
 prune .napari-hub
 prune tests

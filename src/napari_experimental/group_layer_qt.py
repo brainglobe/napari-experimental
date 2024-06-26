@@ -1,14 +1,21 @@
 from __future__ import annotations
 
+from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 from napari._qt.containers import QtNodeTreeModel, QtNodeTreeView
-from qtpy.QtCore import QModelIndex, Qt
+from napari._qt.qt_resources import get_current_stylesheet
+from qtpy.QtCore import QModelIndex, QSize, Qt
+from qtpy.QtGui import QImage
 
 from napari_experimental.group_layer import GroupLayer
+from napari_experimental.GroupLayerDelegate import GroupLayerDelegate
 
 if TYPE_CHECKING:
     from qtpy.QtWidgets import QWidget
+
+
+ThumbnailRole = Qt.UserRole + 2
 
 
 class QtGroupLayerModel(QtNodeTreeModel[GroupLayer]):
@@ -31,6 +38,31 @@ class QtGroupLayerModel(QtNodeTreeModel[GroupLayer]):
             return item._node_name()
         elif role == Qt.ItemDataRole.UserRole:
             return self.getItem(index)
+        # Match size setting in QtLayerListModel data()
+        elif role == Qt.ItemDataRole.SizeHintRole:
+            return QSize(200, 34)
+        # Match thumbnail retrieval in QtLayerListModel data()
+        elif role == ThumbnailRole and not item.is_group():
+            thumbnail = item.layer.thumbnail
+            return QImage(
+                thumbnail,
+                thumbnail.shape[1],
+                thumbnail.shape[0],
+                QImage.Format_RGBA8888,
+            )
+        # Match alignment of text in QtLayerListModel data()
+        elif role == Qt.ItemDataRole.TextAlignmentRole:
+            return Qt.AlignCenter
+        # Match check state in QtLayerListModel data()
+        elif role == Qt.ItemDataRole.CheckStateRole:
+            if not item.is_group():
+                return (
+                    Qt.CheckState.Checked
+                    if item.layer.visible
+                    else Qt.CheckState.Unchecked
+                )
+            else:
+                return Qt.CheckState.Checked
         return None
 
     def setData(
@@ -39,9 +71,16 @@ class QtGroupLayerModel(QtNodeTreeModel[GroupLayer]):
         value: Any,
         role: int = Qt.ItemDataRole.EditRole,
     ) -> bool:
+        item = self.getItem(index)
         if role == Qt.ItemDataRole.EditRole:
-            self.getItem(index).name = value
+            item.name = value
             self.dataChanged.emit(index, index, [role])
+            return True
+        elif role == Qt.ItemDataRole.CheckStateRole:
+            if not item.is_group():
+                item.layer.visible = (
+                    Qt.CheckState(value) == Qt.CheckState.Checked
+                )
             return True
         else:
             return False
@@ -54,6 +93,17 @@ class QtGroupLayerView(QtNodeTreeView):
     def __init__(self, root: GroupLayer, parent: QWidget = None):
         super().__init__(root, parent)
         self.setRoot(root)
+
+        grouplayer_delegate = GroupLayerDelegate()
+        self.setItemDelegate(grouplayer_delegate)
+
+        # Keep existing style and add additional items from 'tree.qss'
+        # Tree.qss matches styles for QtListView and QtLayerList from
+        # 02_custom.qss in Napari
+        stylesheet = get_current_stylesheet(
+            extra=[str(Path(__file__).parent / "styles" / "tree.qss")]
+        )
+        self.setStyleSheet(stylesheet)
 
     def setRoot(self, root: GroupLayer):
         """Override setRoot to ensure .model is a QtGroupLayerModel"""
