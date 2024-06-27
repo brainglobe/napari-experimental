@@ -40,7 +40,9 @@ class GroupLayerWidget(QWidget):
 
         self.global_layers.events.inserted.connect(self._new_layer)
         self.global_layers.events.removed.connect(self._removed_layer)
-        self.global_layers.events.moved.connect(self._on_layer_move)
+        # TODO: Fix when rearrangement happens in global viewer
+        # (ordering is hard...)
+        # TODO: On delete object in group viewer.
 
         # Impose any layer reorderings on the global layers viewer.
         # NOTE: May be slow since this will happen whenever rows move,
@@ -102,25 +104,20 @@ class GroupLayerWidget(QWidget):
         """
         :param event: index, value (layer that was inserted)
         """
-        # TODO: insert_at argument needs to sync.
-        # Note both
-        # (a) the reverse index difficulty, and
-        # (b) the un-flattening ambiguity
-        # Might be able to re-use some functionality from _on_layer_move...
-        # Will need to be able to:
-        # - Convert the layerlist index to the correct (multi-index) of the
-        # tree, accounting for the fact that groups are counted by the index
-        # in our structure, but aren't in LayerList...
-        # - Determine the correct place to insert in the event that we're
-        # inserting before a group item...
-        self.group_layers.add_new_item(insert_at=0, layer_ptr=event.value)
-        raise NotImplementedError()
-
-    def _on_layer_move(self, event: Event) -> None:
-        """
-        :param event: index (moved from), new_index (moved to), value
-        """
-        raise NotImplementedError()
+        new_flat_layer_index = event.index
+        index_conversion = (
+            self.group_layers_view.model().flat_layer_index_to_index
+        )
+        nested_insertion_index = (
+            self.group_layers_view.model()
+            .getItem(index_conversion[new_flat_layer_index])
+            .index_from_root()
+            if new_flat_layer_index in index_conversion.keys()
+            else 0
+        )
+        self.group_layers.add_new_layer(
+            event.value, location=nested_insertion_index
+        )
 
     def _removed_layer(self, event: Event) -> None:
         """

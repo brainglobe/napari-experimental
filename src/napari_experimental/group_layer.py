@@ -2,9 +2,10 @@ from __future__ import annotations
 
 import random
 import string
-from typing import Optional
+from typing import Optional, Tuple
 
 from napari.layers import Layer
+from napari.utils.events.containers._nested_list import split_nested_index
 from napari.utils.tree import Group
 
 from napari_experimental.group_layer_node import GroupLayerNode
@@ -104,6 +105,40 @@ class GroupLayer(Group[GroupLayerNode], GroupLayerNode):
     def _node_name(self) -> str:
         """Will be used when rendering node tree as string."""
         return f"GL-{self.name}"
+
+    def add_new_layer(
+        self,
+        layer_ptr: Layer,
+        location: Optional[Tuple[int]] = None,
+    ) -> None:
+        """
+        Add a new (node tracking a) layer to the model.
+        New Nodes are by default added at the bottom of the tree.
+
+        Parameters
+        ----------
+        layer_ptr : napari.layers.Layer
+            Layer to add and track with a Node
+        location : int | NestedIndex, optional
+            int or NestedIndex at which to insert the item.
+        """
+        if location is None:
+            location = ()
+        insert_to_group, insertion_index = split_nested_index(location)
+
+        insertion_group = (
+            self if not insert_to_group else self[insert_to_group]
+        )
+        assert (
+            insertion_group.is_group()
+            and not insertion_group._check_already_tracking(
+                layer_ptr=layer_ptr
+            )
+        ), (f"Group {insertion_group} is already tracking {layer_ptr}")
+
+        insertion_group.insert(
+            insertion_index, GroupLayerNode(layer_ptr=layer_ptr)
+        )
 
     def add_new_item(
         self,
