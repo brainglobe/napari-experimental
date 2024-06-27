@@ -3,7 +3,6 @@ from __future__ import annotations
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-from napari._app_model.constants import MenuId
 from napari._app_model.context import get_context
 from napari._qt._qapp_model import build_qmodel_menu
 from napari._qt.containers._base_item_model import ItemRole
@@ -14,6 +13,7 @@ from qtpy.QtCore import QPoint, QSize, Qt
 from qtpy.QtGui import QMouseEvent, QPixmap
 
 from napari_experimental.group_layer import GroupLayer
+from napari_experimental.group_layer_actions import GROUP_LAYER_CONTEXT
 
 if TYPE_CHECKING:
     from qtpy import QtCore
@@ -92,7 +92,7 @@ class GroupLayerDelegate(LayerDelegate):
         """
         if not hasattr(self, "_context_menu"):
             self._context_menu = build_qmodel_menu(
-                MenuId.LAYERLIST_CONTEXT, parent=parent
+                GROUP_LAYER_CONTEXT, parent=parent
             )
 
         group_layer: GroupLayer = model._root
