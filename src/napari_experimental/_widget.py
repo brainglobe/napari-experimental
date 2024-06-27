@@ -42,20 +42,25 @@ class GroupLayerWidget(QWidget):
         self.global_layers.events.inserted.connect(self._new_layer)
         self.global_layers.events.removed.connect(self._removed_layer)
 
+        self.group_layers_view.clicked.connect(self._item_selected_in_view)
+        # Impose any layer reorderings on the global layers viewer.
+        # NOTE: May be slow since this will happen whenever rows move,
+        # and we will reconstruct the whole layer order each time even
+        # if only one row moves, for example.
+        self.group_layers_view.model().rowsMoved.connect(
+            self._impose_layer_order
+        )
+
         self.add_group_button = QPushButton("Add empty layer group")
         self.add_group_button.clicked.connect(self._new_layer_group)
 
         self.enter_debugger = QPushButton("ENTER DEBUGGER")
         self.enter_debugger.clicked.connect(self._enter_debug)
 
-        self.impose_order = QPushButton("Impose Layer Order")
-        self.impose_order.clicked.connect(self._impose_layer_order)
-
         self.setLayout(QVBoxLayout())
         self.layout().addWidget(self.group_layers_controls)
         self.layout().addWidget(self.enter_debugger)
         self.layout().addWidget(self.add_group_button)
-        self.layout().addWidget(self.impose_order)
         self.layout().addWidget(self.group_layers_view)
 
     def _impose_layer_order(self) -> None:
@@ -98,7 +103,11 @@ class GroupLayerWidget(QWidget):
         """
         :param event: index, value (layer that was inserted)
         """
-        self.group_layers.add_new_item(layer_ptr=event.value)
+        # TODO: insert_at argument needs to sync.
+        # Note both
+        # (a) the reverse index difficulty, and
+        # (b) the un-flattening ambiguity
+        self.group_layers.add_new_item(insert_at=0, layer_ptr=event.value)
 
     def _removed_layer(self, event: Tuple[int, Layer]) -> None:
         """
