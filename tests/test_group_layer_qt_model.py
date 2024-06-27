@@ -61,24 +61,29 @@ def test_iter_and_traverse(
 
 
 @pytest.mark.parametrize(
-    ["nested_index_of_item", "expected_flat_index"],
     [
-        pytest.param((0,), 0, id="Points_0"),
-        pytest.param((1,), 1, id="Group_A"),
-        pytest.param((1, 0), 2, id="Points_A0"),
-        pytest.param((1, 1), 3, id="Group_AA"),
-        pytest.param((1, 1, 0), 4, id="Points_AA0"),
-        pytest.param((1, 1, 1), 5, id="Group_AA1"),
-        pytest.param((1, 2), 6, id="Points_A1"),
-        pytest.param((2,), 7, id="Points_1"),
-        pytest.param((3,), 8, id="Group_B"),
-        pytest.param((3, 0), 9, id="Points_B0"),
+        "nested_index_of_item",
+        "expected_flat_index",
+        "expected_flat_index_wo_groups",
+    ],
+    [
+        pytest.param((0,), 0, 0, id="Points_0"),
+        pytest.param((1,), 1, None, id="Group_A"),
+        pytest.param((1, 0), 2, 1, id="Points_A0"),
+        pytest.param((1, 1), 3, None, id="Group_AA"),
+        pytest.param((1, 1, 0), 4, 2, id="Points_AA0"),
+        pytest.param((1, 1, 1), 5, 3, id="Points_AA1"),
+        pytest.param((1, 2), 6, 4, id="Points_A1"),
+        pytest.param((2,), 7, 5, id="Points_1"),
+        pytest.param((3,), 8, None, id="Group_B"),
+        pytest.param((3, 0), 9, 6, id="Points_B0"),
     ],
 )
 def test_flatindex_to_index(
     nested_model: QtGroupLayerModel,
     nested_index_of_item: Tuple[int, ...],
     expected_flat_index: int,
+    expected_flat_index_wo_groups: int | None,
 ) -> None:
     """
     Using the structure of the nested_layer_group model, check that the flat
@@ -90,4 +95,28 @@ def test_flatindex_to_index(
     assert (
         nested_model.nestedIndex(nested_index_of_item)
         == nested_model.flatindex_to_index[expected_flat_index]
+    ), (
+        f"Incorrect flatindex assignment for {nested_index_of_item} "
+        f"(expected {expected_flat_index})."
     )
+    if expected_flat_index_wo_groups is None:
+        assert isinstance(
+            nested_model.getItem(
+                nested_model.nestedIndex(nested_index_of_item)
+            ),
+            GroupLayer,
+        ), (
+            "Non-GroupLayer items should have flat indices even when "
+            "GroupLayers are excluded from the order."
+        )
+    else:
+        assert (
+            nested_model.nestedIndex(nested_index_of_item)
+            == nested_model.flat_layer_index_to_index[
+                expected_flat_index_wo_groups
+            ]
+        ), (
+            "Incorrect flatindex (without groups) assignment for "
+            f"{nested_index_of_item} "
+            f"(expected {expected_flat_index_wo_groups})"
+        )

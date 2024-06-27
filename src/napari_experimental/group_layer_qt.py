@@ -19,6 +19,28 @@ class QtGroupLayerModel(QtNodeTreeModel[GroupLayer]):
         return self.nestedIndex(())
 
     @property
+    def flat_layer_index_to_index(self) -> Dict[int, QModelIndex]:
+        """
+        Return a dictionary that maps between flattened indices EXCLUDING Group
+        elements, and the QModelIndex-es used internally by the model.
+
+        Key: Value pairs are flattened index (int): model index (QModelIndex).
+        """
+        flat_without_groups = {
+            q_index: flat_index_w_groups
+            for flat_index_w_groups, q_index in self.flatindex_to_index.items()
+            if not self.getItem(q_index).is_group()
+        }
+        no_groups_order = sorted(
+            flat_without_groups.keys(),
+            key=lambda q_index: flat_without_groups[q_index],
+        )
+        return {
+            flat_index_wo_groups: q_index
+            for flat_index_wo_groups, q_index in enumerate(no_groups_order)
+        }
+
+    @property
     def flatindex_to_index(self) -> Dict[int, QModelIndex]:
         """
         Return a dictionary that maps between flattened indices and the
