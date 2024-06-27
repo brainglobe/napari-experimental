@@ -1,10 +1,9 @@
 """
 """
 
-from typing import TYPE_CHECKING, Tuple
+from typing import TYPE_CHECKING
 
 from napari.components import LayerList
-from napari.layers import Layer
 from napari.utils.events import Event
 from qtpy.QtWidgets import QPushButton, QVBoxLayout, QWidget
 
@@ -41,8 +40,8 @@ class GroupLayerWidget(QWidget):
 
         self.global_layers.events.inserted.connect(self._new_layer)
         self.global_layers.events.removed.connect(self._removed_layer)
+        self.global_layers.events.moved.connect(self._on_layer_move)
 
-        self.group_layers_view.clicked.connect(self._item_selected_in_view)
         # Impose any layer reorderings on the global layers viewer.
         # NOTE: May be slow since this will happen whenever rows move,
         # and we will reconstruct the whole layer order each time even
@@ -107,9 +106,23 @@ class GroupLayerWidget(QWidget):
         # Note both
         # (a) the reverse index difficulty, and
         # (b) the un-flattening ambiguity
+        # Might be able to re-use some functionality from _on_layer_move...
+        # Will need to be able to:
+        # - Convert the layerlist index to the correct (multi-index) of the
+        # tree, accounting for the fact that groups are counted by the index
+        # in our structure, but aren't in LayerList...
+        # - Determine the correct place to insert in the event that we're
+        # inserting before a group item...
         self.group_layers.add_new_item(insert_at=0, layer_ptr=event.value)
+        raise NotImplementedError()
 
-    def _removed_layer(self, event: Tuple[int, Layer]) -> None:
+    def _on_layer_move(self, event: Event) -> None:
+        """
+        :param event: index (moved from), new_index (moved to), value
+        """
+        raise NotImplementedError()
+
+    def _removed_layer(self, event: Event) -> None:
         """
         :param event: index, value (layer that was removed)
         """
