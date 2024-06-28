@@ -50,6 +50,25 @@ class GroupLayer(Group[GroupLayerNode], GroupLayerNode):
         Group when it is instantiated. Layers will have a Node created to
         track them, GroupLayerNodes will simply be added to the GroupLayer,
         as will other GroupLayers.
+
+    Attributes
+    ----------
+    name
+
+    Methods
+    -------
+    add_new_layer
+        Add a new (GroupLayerNode tracking a) Layer to the GroupLayer.
+    add_new_group
+        Add a new GroupLayer inside this GroupLayer.
+    check_already_tracking
+        Check if a Layer is already tracked within the tree.
+    flat_index_order
+        Return a list of the tracked Layers, in the order of their occurrence
+        in the tree.
+    remove_layer_item
+        Remove any Nodes that track the Layer provided from the tree (if there
+        are any such Nodes).
     """
 
     @property

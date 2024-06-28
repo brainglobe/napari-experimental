@@ -74,11 +74,11 @@ class GroupLayerWidget(QWidget):
 
     def _new_layer_group(self) -> None:
         """
-        Action taken when creating a new, empty layer group
-        in the widget.
+        Action taken when creating a new, empty layer group in the widget.
+
+        TODO: Still causes a seg-fault when moving an empty group inside
+        another empty group.
         """
-        # Still causes bugs when moving groups
-        # inside other groups, to investigate!
         self.group_layers.add_new_group()
 
     # BEGIN FUNCTIONS TO ENSURE CONSISTENCY BETWEEN
@@ -123,7 +123,7 @@ class GroupLayerWidget(QWidget):
 
     def _on_layer_moved(self, event: Event) -> None:
         """
-        Actions to take after GroupLayers are reordered:
+        Actions taken when Nodes with the GroupLayer object are reordered:
         - Impose layer order on the main viewer after an update.
 
         Parameters
@@ -180,5 +180,8 @@ class GroupLayerWidget(QWidget):
         """
         Placeholder method that allows the developer to
         enter a DEBUG context with the widget as self.
+
+        Place a breakpoint at the pass statement below to
+        utilise.
         """
         pass
