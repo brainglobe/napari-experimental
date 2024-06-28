@@ -1,10 +1,9 @@
 """
 """
 
-from typing import TYPE_CHECKING, Tuple
+from typing import TYPE_CHECKING
 
 from napari.components import LayerList
-from napari.layers import Layer
 from napari.utils.events import Event
 from qtpy.QtWidgets import QPushButton, QVBoxLayout, QWidget
 
@@ -42,6 +41,9 @@ class GroupLayerWidget(QWidget):
         self.global_layers.events.inserted.connect(self._new_layer)
         self.global_layers.events.removed.connect(self._removed_layer)
 
+        # Impose layer order whenever layers get moved
+        self.group_layers.events.moved.connect(self._on_layer_moved)
+
         self.add_group_button = QPushButton("Add empty layer group")
         self.add_group_button.clicked.connect(self._new_layer_group)
 
@@ -66,7 +68,23 @@ class GroupLayerWidget(QWidget):
         """
         self.group_layers.add_new_item(layer_ptr=event.value)
 
-    def _removed_layer(self, event: Tuple[int, Layer]) -> None:
+    def _on_layer_moved(self, event: Event) -> None:
+        """
+        Actions to take after GroupLayers are reordered:
+        - Impose layer order on the main viewer after an update.
+        """
+        new_order = self.group_layers.flat_index_order()
+
+        for new_position, layer in enumerate(
+            [
+                self.group_layers[nested_index].layer
+                for nested_index in new_order
+            ]
+        ):
+            currently_at = self.global_layers.index(layer)
+            self.global_layers.move(currently_at, dest_index=new_position)
+
+    def _removed_layer(self, event: Event) -> None:
         """
         :param event: index, value (layer that was removed)
         """

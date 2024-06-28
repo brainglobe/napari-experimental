@@ -100,7 +100,7 @@ def test_flat_index(nested_layer_group: GroupLayer) -> None:
     - Group_B
       - Points_B0
     """
-    flat_order = nested_layer_group._flat_index_order()
+    flat_order = nested_layer_group.flat_index_order()
     expected_flat_order = [
         (0,),  # Points_0
         (1, 0),  # Points_A0

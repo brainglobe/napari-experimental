@@ -105,40 +105,6 @@ class GroupLayer(Group[GroupLayerNode], GroupLayerNode):
                     return True
         return False
 
-    def _flat_index_order(self) -> List[NestedIndex]:
-        """
-        Return a list of NestedIndex-es, whose order corresponds to
-        the flat order of the Nodes in the tree.
-
-        The flat order of the Nodes counts up from 0 at the root of the
-        tree, and descends into branches before continuing. An example is
-        given in the tree below:
-
-        Tree                Flat Index
-        - Node_0            0
-        - Node_1            1
-        - Group_A           n/a
-            - Node_A0       3
-            - Node_A1       4
-            - Group_AA      n/a
-                - Node_AA0  5
-            - Node_A2       6
-        - Node_2            7
-        ...
-        """
-        order: List[NestedIndex] = []
-        for item in self:
-            if item.is_group():
-                # This is a group, descend into it and append
-                # its ordering to our current ordering
-                item: GroupLayer
-                order += item._flat_index_order()
-            else:
-                # This is just a node, and it is the next one in
-                # the order
-                order.append(item.index_from_root())
-        return order
-
     def _node_name(self) -> str:
         """Will be used when rendering node tree as string."""
         return f"GL-{self.name}"
@@ -207,6 +173,40 @@ class GroupLayer(Group[GroupLayerNode], GroupLayerNode):
                     f"Already tracking {layer_ptr}, "
                     "but requested a new Node for it."
                 )
+
+    def flat_index_order(self) -> List[NestedIndex]:
+        """
+        Return a list of NestedIndex-es, whose order corresponds to
+        the flat order of the Nodes in the tree.
+
+        The flat order of the Nodes counts up from 0 at the root of the
+        tree, and descends into branches before continuing. An example is
+        given in the tree below:
+
+        Tree                Flat Index
+        - Node_0            0
+        - Node_1            1
+        - Group_A           n/a
+            - Node_A0       3
+            - Node_A1       4
+            - Group_AA      n/a
+                - Node_AA0  5
+            - Node_A2       6
+        - Node_2            7
+        ...
+        """
+        order: List[NestedIndex] = []
+        for item in self:
+            if item.is_group():
+                # This is a group, descend into it and append
+                # its ordering to our current ordering
+                item: GroupLayer
+                order += item.flat_index_order()
+            else:
+                # This is just a node, and it is the next one in
+                # the order
+                order.append(item.index_from_root())
+        return order
 
     def is_group(self) -> bool:
         """
