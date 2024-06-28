@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import random
 import string
-from typing import List, Optional, Tuple
+from typing import Iterable, List, Literal, Optional
 
 from napari.layers import Layer
 from napari.utils.events.containers._nested_list import (
@@ -81,6 +81,69 @@ class GroupLayer(Group[GroupLayerNode], GroupLayerNode):
             basetype=GroupLayerNode,
         )
 
+    def _add_new_item(
+        self,
+        item_type: Literal["Node", "Group"],
+        location: Optional[NestedIndex | int] = None,
+        layer_ptr: Optional[Layer] = None,
+        group_items: Optional[Iterable[GroupLayer | GroupLayerNode]] = None,
+    ) -> None:
+        """
+        Abstraction method handling the addition of Nodes and Groups to the
+        tree structure.
+
+        Parameters
+        ----------
+        item_type: Literal
+            The type of item to add to the tree.
+            Must be one of: "Node", "Group".
+        location: NestedIndex | int, optional
+            Location in the tree to insert the new item.
+            Items are added to the end of the top level of the tree by default.
+        layer_ptr: Layer, optional
+            If creating a new Node, the Layer that the Node should track.
+        group_items: Iterable[GroupLayer | GroupLayerNode], optional
+            If creating a new Group, the items that should be added to said
+            Group upon its creation.
+        """
+        if item_type not in ["Node", "Group"]:
+            raise ValueError(
+                f"Unknown item type to insert into Tree: {item_type} "
+                "(expected 'Node' or 'Group')"
+            )
+        if location is None:
+            location = ()
+        insert_to_group, insertion_index = split_nested_index(location)
+
+        insertion_group = (
+            self if not insert_to_group else self[insert_to_group]
+        )
+        if not insertion_group.is_group():
+            raise ValueError(
+                f"Item at {insert_to_group} is not a Group, "
+                "so cannot have an item inserted!"
+            )
+        if insertion_index == -1:
+            insertion_index = len(insertion_group)
+
+        if item_type == "Node":
+            if layer_ptr is None:
+                raise ValueError(
+                    "A Layer must be provided when "
+                    "adding a Node to the GroupLayers tree."
+                )
+            elif insertion_group._check_already_tracking(layer_ptr=layer_ptr):
+                raise RuntimeError(
+                    f"Group {insertion_group} is already tracking {layer_ptr}"
+                )
+            insertion_group.insert(
+                insertion_index, GroupLayerNode(layer_ptr=layer_ptr)
+            )
+        elif item_type == "Group":
+            if group_items is None:
+                group_items = ()
+            insertion_group.insert(insertion_index, GroupLayer(*group_items))
+
     def _check_already_tracking(
         self, layer_ptr: Layer, recursive: bool = True
     ) -> bool:
@@ -112,67 +175,38 @@ class GroupLayer(Group[GroupLayerNode], GroupLayerNode):
     def add_new_layer(
         self,
         layer_ptr: Layer,
-        location: Optional[Tuple[int]] = None,
+        location: Optional[NestedIndex | int] = None,
     ) -> None:
         """
-        Add a new (node tracking a) layer to the model.
+        Add a new (Node tracking a) layer to the model.
         New Nodes are by default added at the bottom of the tree.
 
         Parameters
         ----------
         layer_ptr : napari.layers.Layer
             Layer to add and track with a Node
-        location : int | NestedIndex, optional
-            int or NestedIndex at which to insert the item.
+        location : NestedIndex | int, optional
+            Location at which to insert the new (Node tracking the) Layer.
         """
-        if location is None:
-            location = ()
-        insert_to_group, insertion_index = split_nested_index(location)
+        self._add_new_item("Node", location=location, layer_ptr=layer_ptr)
 
-        insertion_group = (
-            self if not insert_to_group else self[insert_to_group]
-        )
-        assert (
-            insertion_group.is_group()
-            and not insertion_group._check_already_tracking(
-                layer_ptr=layer_ptr
-            )
-        ), (f"Group {insertion_group} is already tracking {layer_ptr}")
-
-        insertion_group.insert(
-            insertion_index, GroupLayerNode(layer_ptr=layer_ptr)
-        )
-
-    def add_new_item(
+    def add_new_group(
         self,
-        insert_at: Optional[int] = None,
-        layer_ptr: Optional[Layer] = None,
+        *items: GroupLayer | GroupLayerNode,
+        location: Optional[NestedIndex | int] = None,
     ) -> None:
         """
-        Insert a new GroupLayerNode, or GroupLayer, into the instance.
+        Add a new Group (of Layers) to the model.
+        New Groups are by default added at the bottom of the tree.
 
-        By default, it is assumed that a new GroupLayer is being added.
-        Groups added in this way may themselves be empty.
-
-        To add a new Node, provide the layer_ptr argument.
-        Adding a new Node without providing the layer it should track is
-        prohibited.
-        Adding a new Node that tracks an already tracked layer is also
-        prohibited.
+        Parameters
+        ----------
+        location: NestedIndex | int, optional
+            Location at which to insert the new GroupLayer.
+        items: GroupLayer | GroupLayerNode, optional
+            Items to add to the new GroupLayer upon its creation.
         """
-        if insert_at is None:
-            insert_at = len(self)
-
-        if layer_ptr is None:
-            self.insert(insert_at, GroupLayer())
-        elif isinstance(layer_ptr, Layer):
-            if not self._check_already_tracking(layer_ptr):
-                self.insert(insert_at, GroupLayerNode(layer_ptr=layer_ptr))
-            else:
-                raise ValueError(
-                    f"Already tracking {layer_ptr}, "
-                    "but requested a new Node for it."
-                )
+        self._add_new_item("Group", location=location, group_items=items)
 
     def flat_index_order(self) -> List[NestedIndex]:
         """

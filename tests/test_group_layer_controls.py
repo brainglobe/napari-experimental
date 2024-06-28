@@ -1,18 +1,19 @@
 from napari._qt.layer_controls.qt_image_controls import QtImageControls
 from napari._qt.layer_controls.qt_points_controls import QtPointsControls
 from napari.layers import Image, Points
+from napari_experimental.group_layer import GroupLayer
 from napari_experimental.group_layer_controls import (
     QtGroupLayerControls,
     QtGroupLayerControlsContainer,
 )
 
 
-def test_controls_selection(make_napari_viewer, group_layer_data):
+def test_controls_selection(make_napari_viewer, group_layer_data: GroupLayer):
     """Test that group layer controls initialise with the correct widget, and
     match changes to the selected item."""
     viewer = make_napari_viewer()
     # Add an empty group also
-    group_layer_data.add_new_item()
+    group_layer_data.add_new_group()
 
     # Initialise with image item selected
     image_item = group_layer_data[1]
@@ -41,7 +42,9 @@ def test_controls_selection(make_napari_viewer, group_layer_data):
     ), "Current widget doesn't match selected group layer"
 
 
-def test_controls_insertion(make_napari_viewer, group_layer_data, blobs):
+def test_controls_insertion(
+    make_napari_viewer, group_layer_data: GroupLayer, blobs: Points
+):
     """Test that insertions into group layers are reflected in the controls
     widgets"""
     viewer = make_napari_viewer()
@@ -56,7 +59,7 @@ def test_controls_insertion(make_napari_viewer, group_layer_data, blobs):
     new_layer = Image(
         blobs, scale=(1, 2), translate=(20, 15), name="new-blobs"
     )
-    group_layer_data.add_new_item(layer_ptr=new_layer)
+    group_layer_data.add_new_layer(layer_ptr=new_layer)
 
     # Check that adding an item to group layers, also appears in the widgets
     assert len(group_layer_data) == n_items + 1

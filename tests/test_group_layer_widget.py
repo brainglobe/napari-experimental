@@ -5,7 +5,7 @@ from qtpy.QtWidgets import QWidget
 
 
 @pytest.fixture()
-def group_layer_widget(make_napari_viewer, blobs):
+def group_layer_widget(make_napari_viewer, blobs) -> GroupLayerWidget:
     viewer = make_napari_viewer()
     viewer.add_image(blobs)
     return GroupLayerWidget(viewer)
@@ -16,12 +16,12 @@ def test_widget_creation(make_napari_viewer_proxy) -> None:
     assert isinstance(GroupLayerWidget(viewer), QWidget)
 
 
-def test_rename_group_layer(group_layer_widget):
+def test_rename_group_layer(group_layer_widget: GroupLayerWidget):
     group_layers_view = group_layer_widget.group_layers_view
     group_layers_model = group_layers_view.model()
 
     # Add an empty group layer
-    group_layer_widget.group_layers.add_new_item()
+    group_layer_widget.group_layers.add_new_group()
 
     # Check current name
     new_name = "renamed-group"

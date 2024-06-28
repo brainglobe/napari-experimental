@@ -30,7 +30,7 @@ class GroupLayerWidget(QWidget):
 
         self.viewer = viewer
 
-        self.group_layers = GroupLayer(*self.global_layers)
+        self.group_layers = GroupLayer(*self.global_layers.__reversed__())
         self.group_layers_view = QtGroupLayerView(
             self.group_layers, parent=self
         )
@@ -38,9 +38,17 @@ class GroupLayerWidget(QWidget):
             self.viewer, self.group_layers
         )
 
-        self.global_layers.events.inserted.connect(self._new_layer)
-        self.global_layers.events.removed.connect(self._removed_layer)
-
+        # Consistency when adding / removing layers from main viewer,
+        # changes are reflected in the GroupLayer view too
+        self.global_layers.events.inserted.connect(
+            self._new_layer_in_main_viewer
+        )
+        self.global_layers.events.removed.connect(
+            self._removed_layer_in_main_viewer
+        )
+        self.group_layers.events.removed.connect(
+            self._removed_layer_in_group_layers
+        )
         # Impose layer order whenever layers get moved
         self.group_layers.events.moved.connect(self._on_layer_moved)
 
@@ -60,13 +68,47 @@ class GroupLayerWidget(QWidget):
         """ """
         # Still causes bugs when moving groups
         # inside other groups, to investigate!
-        self.group_layers.add_new_item()
+        self.group_layers.add_new_group()
 
-    def _new_layer(self, event: Event) -> None:
+    # BEGIN FUNCTIONS TO ENSURE CONSISTENCY BETWEEN
+    # MAIN VIEWER AND GROUP LAYERS VIEWER.
+    # Functions in this block are un-necessary if the
+    # group layers widget later replaces the main layer viewer.
+
+    def _new_layer_in_main_viewer(self, event: Event) -> None:
         """
-        :param event: index, value (layer that was inserted)
+        When a new layer is added via the global_layers controls,
+        the GroupLayers instance needs to update to include it.
+
+        The new layer is inserted into the appropriate position in
+        the Tree.
+
+        Parameters
+        ----------
+        event : Event
+            With attributes
+            - index (in the LayerList the Layer was inserted),
+            - value (layer that was inserted).
         """
-        self.group_layers.add_new_item(layer_ptr=event.value)
+        # New layers in the main viewer can come in either at the top,
+        # or next to another layer (from duplications, etc).
+        # As such, we need to take the index that the layer was inserted
+        # at in the LayerList, and insert the new layer into our GroupLayer
+        # structure in the correct position.
+        old_order = self.group_layers.flat_index_order()
+        # Due to LayerList and Tree structures having reversed indices
+        insert_at_flat_index = len(old_order) - event.index
+        # Potentially could have been added to the end of the tree, in which
+        # case a new index would have to be created at the end of the tree
+        # and there would be no nested index to lookup
+        insert_at_nested_index = (
+            old_order[insert_at_flat_index]
+            if insert_at_flat_index < len(old_order)
+            else len(self.group_layers)
+        )
+        self.group_layers.add_new_layer(
+            layer_ptr=event.value, location=insert_at_nested_index
+        )
 
     def _on_layer_moved(self, event: Event) -> None:
         """
@@ -74,6 +116,9 @@ class GroupLayerWidget(QWidget):
         - Impose layer order on the main viewer after an update.
         """
         new_order = self.group_layers.flat_index_order()
+        # Since the LayerList viewer indexes in the reverse to our Tree model,
+        # we must reverse the order provided.
+        new_order.reverse()
 
         for new_position, layer in enumerate(
             [
@@ -84,11 +129,21 @@ class GroupLayerWidget(QWidget):
             currently_at = self.global_layers.index(layer)
             self.global_layers.move(currently_at, dest_index=new_position)
 
-    def _removed_layer(self, event: Event) -> None:
+    def _removed_layer_in_main_viewer(self, event: Event) -> None:
         """
         :param event: index, value (layer that was removed)
         """
         self.group_layers.remove_layer_item(layer_ptr=event.value)
+
+    def _removed_layer_in_group_layers(self, event: Event) -> None:
+        """
+        index, value
+        """
+        layer_to_remove = event.value.layer
+        if layer_to_remove in self.global_layers:
+            self.global_layers.remove(layer_to_remove)
+
+    # END FUNCTION BLOCK
 
     def _enter_debug(self) -> None:
         """Placeholder method that allows the developer to
