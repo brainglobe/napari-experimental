@@ -7,6 +7,30 @@ from napari.utils.tree import Node
 
 
 class GroupLayerNode(Node):
+    """
+    A Node item for a tree-like data structure that has a dedicated attribute
+    for tracking a single Layer. See `napari.utils.tree` for more information
+    about Nodes.
+
+    GroupLayerNodes are the core building block of the GroupLayer display. By
+    wrapping a Layer inside a Node in this way, Layers can be organised into a
+    tree-like structure (allowing for grouping and nesting) without the hassle
+    of subclassing or mixing-in the Node class (which would require widespread
+    changes to the core napari codebase).
+
+    Parameters
+    ----------
+    layer_ptr : Layer, optional
+        The Layer object that this Node should initially track.
+    name: str, optional
+        Name to be given to the Node upon creation. The Layer retains its name.
+
+    Attributes
+    ----------
+    is_tracking
+    layer
+    name
+    """
 
     __default_name: str = "Node[None]"
 
@@ -14,10 +38,17 @@ class GroupLayerNode(Node):
 
     @property
     def is_tracking(self) -> bool:
+        """
+        Returns True if the Node is currently tracking a Layer
+        (self.Layer is not None), else False.
+        """
         return self.layer is not None
 
     @property
     def layer(self) -> Layer:
+        """
+        The (pointer to the) Layer that the Node is currently tracking.
+        """
         return self._tracking_layer
 
     @layer.setter
@@ -29,6 +60,12 @@ class GroupLayerNode(Node):
 
     @property
     def name(self) -> str:
+        """
+        Name of the Node.
+
+        If the Node is tracking a Layer, returns the name of the Layer.
+        Otherwise, returns the internal name of the Node.
+        """
         if self.is_tracking:
             return self.layer.name
         else:
