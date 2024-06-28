@@ -22,13 +22,60 @@ def random_string(str_length: int = 5) -> str:
 
 class GroupLayer(Group[GroupLayerNode], GroupLayerNode):
     """
+    A Group item for a tree-like data structure whose nodes have a dedicated
+    attribute for tracking a single Layer. See `napari.utils.tree` for more
+    information about Nodes and Groups.
+
     GroupLayers are the "complex" component of the Tree structure that is used
     to organise Layers into Groups. A GroupLayer contains GroupLayerNodes and
     other GroupLayers (which are, in particular, a subclass of GroupLayerNode).
+    By convention, GroupLayers themselves do not track individual Layers, and
+    hence their `.layer` property is always set to `None`. Contrastingly, their
+    `.is_group()` method always returns `True` compared to a `GroupLayerNode`'s
+    method returning `False`.
+
+    Since the Nodes in the tree map 1:1 with the Layers, the docstrings and
+    comments within this class often use the words interchangeably. This may
+    give rise to phrases such as "Layers in the model" even though - strictly
+    speaking - there are no Layers in the model, only GroupLayerNodes which
+    track the Layers. Such phrases should be taken to mean "Layers which are
+    tracked by one GroupLayerNode in the model", and typically serve to save on
+    the verbosity of comments. In places where this may give rise to ambiguity,
+    the precise language is used.
+
+    Parameters
+    ----------
+    *items_to_include : Layer | GroupLayerNode | GroupLayer
+        Items to be added (in the order they are given as arguments) to the
+        Group when it is instantiated. Layers will have a Node created to
+        track them, GroupLayerNodes will simply be added to the GroupLayer,
+        as will other GroupLayers.
+
+    Attributes
+    ----------
+    name
+
+    Methods
+    -------
+    add_new_layer
+        Add a new (GroupLayerNode tracking a) Layer to the GroupLayer.
+    add_new_group
+        Add a new GroupLayer inside this GroupLayer.
+    check_already_tracking
+        Check if a Layer is already tracked within the tree.
+    flat_index_order
+        Return a list of the tracked Layers, in the order of their occurrence
+        in the tree.
+    remove_layer_item
+        Remove any Nodes that track the Layer provided from the tree (if there
+        are any such Nodes).
     """
 
     @property
     def name(self) -> str:
+        """
+        Name of the GroupLayer.
+        """
         return self._name
 
     @name.setter
@@ -73,11 +120,13 @@ class GroupLayer(Group[GroupLayerNode], GroupLayerNode):
         item_type: Literal["Node", "Group"],
         location: Optional[NestedIndex | int] = None,
         layer_ptr: Optional[Layer] = None,
-        group_items: Optional[Iterable[GroupLayer | GroupLayerNode]] = None,
+        group_items: Optional[
+            Iterable[Layer | GroupLayer | GroupLayerNode]
+        ] = None,
     ) -> None:
         """
-        Abstraction method handling the addition of Nodes and Groups to the
-        tree structure.
+        Abstract method handling the addition of Nodes and Groups to the
+        tree structure. See also `add_new_layer` and `add_new_group`.
 
         Parameters
         ----------
@@ -119,7 +168,7 @@ class GroupLayer(Group[GroupLayerNode], GroupLayerNode):
                     "A Layer must be provided when "
                     "adding a Node to the GroupLayers tree."
                 )
-            elif insertion_group._check_already_tracking(layer_ptr=layer_ptr):
+            elif insertion_group.check_already_tracking(layer_ptr=layer_ptr):
                 raise RuntimeError(
                     f"Group {insertion_group} is already tracking {layer_ptr}"
                 )
@@ -131,30 +180,6 @@ class GroupLayer(Group[GroupLayerNode], GroupLayerNode):
                 group_items = ()
             insertion_group.insert(insertion_index, GroupLayer(*group_items))
 
-    def _check_already_tracking(
-        self, layer_ptr: Layer, recursive: bool = True
-    ) -> bool:
-        """
-        Return TRUE if the layer provided is already being tracked
-        by a Node in this tree.
-
-        Layer equality is determined by the IS keyword, to confirm that
-        a Node is pointing to the Layer object in memory.
-
-        :param layer_ptr: Reference to the Layer to determine is in the
-        model.
-        :param recursive: If True, then all sub-trees of the tree will be
-        checked for the given Layer, returning True if it is found at any
-        depth.
-        """
-        for item in self:
-            if not item.is_group() and item.layer is layer_ptr:
-                return True
-            elif item.is_group() and recursive:
-                if item._check_already_tracking(layer_ptr, recursive=True):
-                    return True
-        return False
-
     def _node_name(self) -> str:
         """Will be used when rendering node tree as string."""
         return f"GL-{self.name}"
@@ -165,7 +190,7 @@ class GroupLayer(Group[GroupLayerNode], GroupLayerNode):
         location: Optional[NestedIndex | int] = None,
     ) -> None:
         """
-        Add a new (Node tracking a) layer to the model.
+        Add a new (Node tracking a) Layer to the model.
         New Nodes are by default added at the bottom of the tree.
 
         Parameters
@@ -179,7 +204,7 @@ class GroupLayer(Group[GroupLayerNode], GroupLayerNode):
 
     def add_new_group(
         self,
-        *items: GroupLayer | GroupLayerNode,
+        *items: Layer | GroupLayer | GroupLayerNode,
         location: Optional[NestedIndex | int] = None,
     ) -> None:
         """
@@ -190,10 +215,37 @@ class GroupLayer(Group[GroupLayerNode], GroupLayerNode):
         ----------
         location: NestedIndex | int, optional
             Location at which to insert the new GroupLayer.
-        items: GroupLayer | GroupLayerNode, optional
+        items: Layer | GroupLayer | GroupLayerNode, optional
             Items to add to the new GroupLayer upon its creation.
         """
         self._add_new_item("Group", location=location, group_items=items)
+
+    def check_already_tracking(
+        self, layer_ptr: Layer, recursive: bool = True
+    ) -> bool:
+        """
+        Return TRUE if the Layer provided is already being tracked
+        by a Node in this tree.
+
+        Layer equality is determined by the IS keyword, to confirm that
+        a Node is pointing to the Layer object in memory.
+
+        Parameters
+        ----------
+        layer_ptr : Layer
+            The Layer to determine is in the tree (or not).
+        recursive: bool, default = True
+            If True, then all sub-trees of the tree will be checked for the
+            given Layer, returning True if it is found at any depth.
+        """
+        for item in self:
+            if not item.is_group() and item.layer is layer_ptr:
+                return True
+            elif item.is_group() and recursive:
+                item: GroupLayer
+                if item.check_already_tracking(layer_ptr, recursive=True):
+                    return True
+        return False
 
     def flat_index_order(self) -> List[NestedIndex]:
         """
@@ -201,8 +253,10 @@ class GroupLayer(Group[GroupLayerNode], GroupLayerNode):
         the flat order of the Nodes in the tree.
 
         The flat order of the Nodes counts up from 0 at the root of the
-        tree, and descends into branches before continuing. An example is
-        given in the tree below:
+        tree, and descends down into the tree, exhausting branches it
+        encounters before continuing.
+
+        An example is given in the tree below:
 
         Tree                Flat Index
         - Node_0            0
@@ -214,7 +268,6 @@ class GroupLayer(Group[GroupLayerNode], GroupLayerNode):
                 - Node_AA0  5
             - Node_A2       6
         - Node_2            7
-        ...
         """
         order: List[NestedIndex] = []
         for item in self:
@@ -231,21 +284,12 @@ class GroupLayer(Group[GroupLayerNode], GroupLayerNode):
 
     def is_group(self) -> bool:
         """
-        Determines if this item is a genuine Node, or a branch
-        containing further nodes.
+        Determines if this item is a genuine Node, or a branch containing
+        further nodes.
 
         This method is explicitly defined to ensure that we can distinguish
         between genuine GroupLayerNodes and GroupLayers when traversing the
         tree.
-
-        Due to (necessarily) being a subclass of GroupLayerNode, it is possible
-        for GroupLayer instances to have the .layer property set to track a
-        Layer object. This is (currently) not intended behaviour - GroupLayers
-        are not meant to track Layers themselves. However it is possible to
-        manually set the layer tracker, and I can foresee a situation in the
-        future where this is desirable (particularly for rendering or drawing
-        purposes), so am not strictly forbidding this by overwriting the .layer
-        setter.
         """
         return True  # A GroupLayer is ALWAYS a branch.
 
@@ -255,8 +299,8 @@ class GroupLayer(Group[GroupLayerNode], GroupLayerNode):
         Layer from the tree model.
 
         If removing a layer would result in one of the Group being empty,
-        then the empty Group is also removed from the model.
-        This can be toggled with the `prune` argument.
+        then the empty Group is also removed from the model. This can be
+        toggled with the `prune` argument.
 
         Note that the `is` keyword is used to determine equality between
         the layer provided and the layers that are tracked by the Nodes.
@@ -264,10 +308,13 @@ class GroupLayer(Group[GroupLayerNode], GroupLayerNode):
         tracking from the model, rather than removing the Layer from
         memory itself (as there may still be hanging references to it).
 
-        :param layer_ptr: All Nodes tracking layer_ptr will be removed from
-        the model.
-        :param prune: If True, branches that are empty after removing the
-        layer in question will also be removed.
+        Parameters
+        ----------
+        layer_ptr : Layer
+            All Nodes tracking this Layer will be removed from the model.
+        prune : bool, default = True
+            If True, branches that are empty after removing the Layer in
+            question will also be removed.
         """
         for node in self:
             if node.is_group():

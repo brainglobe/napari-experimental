@@ -80,13 +80,13 @@ def test_check_is_already_tracking(
     expected_result: bool,
 ):
     assert (
-        nested_layer_group._check_already_tracking(
+        nested_layer_group.check_already_tracking(
             layer_ptr=collection_of_layers[layer_key], recursive=recursive
         )
         == expected_result
     ), (
         f"Incorrect result (expected {expected_result}) "
-        f"for _check_already_tracking (with recursive = {recursive})"
+        f"for check_already_tracking (with recursive = {recursive})"
     )
 
 
@@ -184,9 +184,9 @@ def test_add_group(
     ].is_group(), "Group added in the incorrect location."
 
     added_group: GroupLayer = nested_layer_group[add_at_location]
-    assert added_group._check_already_tracking(
+    assert added_group.check_already_tracking(
         pts_1
-    ) and added_group._check_already_tracking(
+    ) and added_group.check_already_tracking(
         pts_2
     ), "Points layers were not added to the new Group upon creation."
     assert (

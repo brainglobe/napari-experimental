@@ -20,6 +20,14 @@ if TYPE_CHECKING:
 
 
 class GroupLayerWidget(QWidget):
+    """
+    Main plugin widget for interacting with GroupLayers.
+
+    Parameters
+    ----------
+    viewer : napari.viewer.Viewer
+        Main viewer instance containing (in particular) the LayerList.
+    """
 
     @property
     def global_layers(self) -> LayerList:
@@ -65,9 +73,12 @@ class GroupLayerWidget(QWidget):
         self.layout().addWidget(self.group_layers_view)
 
     def _new_layer_group(self) -> None:
-        """ """
-        # Still causes bugs when moving groups
-        # inside other groups, to investigate!
+        """
+        Action taken when creating a new, empty layer group in the widget.
+
+        TODO: Still causes a seg-fault when moving an empty group inside
+        another empty group.
+        """
         self.group_layers.add_new_group()
 
     # BEGIN FUNCTIONS TO ENSURE CONSISTENCY BETWEEN
@@ -112,8 +123,13 @@ class GroupLayerWidget(QWidget):
 
     def _on_layer_moved(self, event: Event) -> None:
         """
-        Actions to take after GroupLayers are reordered:
+        Actions taken when Nodes with the GroupLayer object are reordered:
         - Impose layer order on the main viewer after an update.
+
+        Parameters
+        ----------
+        event : Event
+            Unused, but contains the old and new indices of the moved item.
         """
         new_order = self.group_layers.flat_index_order()
         # Since the LayerList viewer indexes in the reverse to our Tree model,
@@ -131,13 +147,28 @@ class GroupLayerWidget(QWidget):
 
     def _removed_layer_in_main_viewer(self, event: Event) -> None:
         """
-        :param event: index, value (layer that was removed)
+        Action taken when a layer is removed using the main LayerList
+        viewer.
+
+        Parameters
+        ----------
+        event : Event
+            Emitted event with attributes
+            - index (of removed layer in LayerList),
+            - value (the layer that was removed).
         """
         self.group_layers.remove_layer_item(layer_ptr=event.value)
 
     def _removed_layer_in_group_layers(self, event: Event) -> None:
         """
-        index, value
+        Action taken when a layer is removed using the GroupLayers view.
+
+        Parameters
+        ----------
+        event : Event
+            Emitted event with attributes
+            - index (of the layer that was removed),
+            - value (the layer that was removed).
         """
         layer_to_remove = event.value.layer
         if layer_to_remove in self.global_layers:
@@ -146,6 +177,11 @@ class GroupLayerWidget(QWidget):
     # END FUNCTION BLOCK
 
     def _enter_debug(self) -> None:
-        """Placeholder method that allows the developer to
-        enter a DEBUG context with the widget as self."""
+        """
+        Placeholder method that allows the developer to
+        enter a DEBUG context with the widget as self.
+
+        Place a breakpoint at the pass statement below to
+        utilise.
+        """
         pass
