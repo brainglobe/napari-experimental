@@ -7,6 +7,13 @@ from napari.utils.tree import Node
 
 
 class GroupLayerNode(Node):
+    """
+    A Node item for a tree-like data structure that has a dedicated attribute
+    for tracking a single Layer. See `napari.utils.tree` for more information
+    about Nodes.
+
+    GroupLayerNodes are the core building block of
+    """
 
     __default_name: str = "Node[None]"
 
