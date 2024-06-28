@@ -242,7 +242,8 @@ class GroupLayer(Group[GroupLayerNode], GroupLayerNode):
             if not item.is_group() and item.layer is layer_ptr:
                 return True
             elif item.is_group() and recursive:
-                if item._check_already_tracking(layer_ptr, recursive=True):
+                item: GroupLayer
+                if item.check_already_tracking(layer_ptr, recursive=True):
                     return True
         return False
 
