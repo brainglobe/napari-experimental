@@ -85,3 +85,34 @@ def test_check_is_already_tracking(
         f"Incorrect result (expected {expected_result}) "
         f"for _check_already_tracking (with recursive = {recursive})"
     )
+
+
+def test_flat_index(nested_layer_group: GroupLayer) -> None:
+    """
+    - Points_0
+    - Group_A
+      - Points_A0
+      - Group_AA
+        - Points_AA0
+        - Points_AA1
+      - Points_A1
+    - Points_1
+    - Group_B
+      - Points_B0
+    """
+    flat_order = nested_layer_group._flat_index_order()
+    expected_flat_order = [
+        (0,),  # Points_0
+        (1, 0),  # Points_A0
+        (1, 1, 0),  # Points_AA0
+        (1, 1, 1),  # Points_AA1
+        (1, 2),  # Points_A1
+        (2,),  # Points_1
+        (3, 0),  # Points_B0
+    ]
+    for i, returned_nested_index in enumerate(flat_order):
+        expected_nested_index = expected_flat_order[i]
+        assert expected_nested_index == returned_nested_index, (
+            f"Mismatch at position {i}: "
+            f"got {returned_nested_index} but expected {expected_nested_index}"
+        )

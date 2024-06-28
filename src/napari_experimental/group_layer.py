@@ -2,9 +2,13 @@ from __future__ import annotations
 
 import random
 import string
-from typing import Optional
+from typing import List, Optional, Tuple
 
 from napari.layers import Layer
+from napari.utils.events.containers._nested_list import (
+    NestedIndex,
+    split_nested_index,
+)
 from napari.utils.tree import Group
 
 from napari_experimental.group_layer_node import GroupLayerNode
@@ -22,6 +26,19 @@ class GroupLayer(Group[GroupLayerNode], GroupLayerNode):
     to organise Layers into Groups. A GroupLayer contains GroupLayerNodes and
     other GroupLayers (which are, in particular, a subclass of GroupLayerNode).
     """
+
+    @property
+    def n_items_in_tree(self) -> int:
+        """
+        Number of items in the Tree structure, recursing into Nodes that
+        are also Groups and counting those elements too.
+        """
+        n_items = 0
+        for item in self:
+            n_items += 1
+            if item.is_group():
+                n_items += item.n_items_in_tree
+        return n_items
 
     @property
     def name(self) -> str:
@@ -88,9 +105,77 @@ class GroupLayer(Group[GroupLayerNode], GroupLayerNode):
                     return True
         return False
 
+    def _flat_index_order(self) -> List[NestedIndex]:
+        """
+        Return a list of NestedIndex-es, whose order corresponds to
+        the flat order of the Nodes in the tree.
+
+        The flat order of the Nodes counts up from 0 at the root of the
+        tree, and descends into branches before continuing. An example is
+        given in the tree below:
+
+        Tree                Flat Index
+        - Node_0            0
+        - Node_1            1
+        - Group_A           n/a
+            - Node_A0       3
+            - Node_A1       4
+            - Group_AA      n/a
+                - Node_AA0  5
+            - Node_A2       6
+        - Node_2            7
+        ...
+        """
+        order: List[NestedIndex] = []
+        for item in self:
+            if item.is_group():
+                # This is a group, descend into it and append
+                # its ordering to our current ordering
+                item: GroupLayer
+                order += item._flat_index_order()
+            else:
+                # This is just a node, and it is the next one in
+                # the order
+                order.append(item.index_from_root())
+        return order
+
     def _node_name(self) -> str:
         """Will be used when rendering node tree as string."""
         return f"GL-{self.name}"
+
+    def add_new_layer(
+        self,
+        layer_ptr: Layer,
+        location: Optional[Tuple[int]] = None,
+    ) -> None:
+        """
+        Add a new (node tracking a) layer to the model.
+        New Nodes are by default added at the bottom of the tree.
+
+        Parameters
+        ----------
+        layer_ptr : napari.layers.Layer
+            Layer to add and track with a Node
+        location : int | NestedIndex, optional
+            int or NestedIndex at which to insert the item.
+        """
+        if location is None:
+            location = ()
+        insert_to_group, insertion_index = split_nested_index(location)
+
+        insertion_group = (
+            self if not insert_to_group else self[insert_to_group]
+        )
+        assert (
+            insertion_group.is_group()
+            and not insertion_group._check_already_tracking(
+                layer_ptr=layer_ptr
+            )
+        ), (f"Group {insertion_group} is already tracking {layer_ptr}")
+
+        insertion_group.insert(
+            insertion_index, GroupLayerNode(layer_ptr=layer_ptr)
+        )
 
     def add_new_item(
         self,
