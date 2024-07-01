@@ -68,22 +68,22 @@ class QtGroupLayerControlsContainer(QtLayerControlsContainer):
         self.viewer.layers.selection.events.active.disconnect(self._display)
 
         # Initialise controls for any layers already present in group_layers
-        self._initialise_controls(group_layers)
+        self._add_item(group_layers)
         self._display_item(group_layers.selection.active)
 
         # Sync with changes to group layers
-        group_layers.events.inserted.connect(self._add)
-        group_layers.events.removed.connect(self._remove)
-        group_layers.selection.events.active.connect(self._display)
+        # group_layers.events.inserted.connect(self._add)
+        # group_layers.events.removed.connect(self._remove)
+        # group_layers.selection.events.active.connect(self._display)
 
-    def _initialise_controls(self, group_layers: GroupLayer) -> None:
-        """Initialise controls for any items already present in group
-        layers"""
-        for item in group_layers:
-            if item.is_group():
-                self._initialise_controls(item)
-
-            self._add_item(item)
+    # def _initialise_controls(self, group_layers: GroupLayer) -> None:
+    #     """Initialise controls for any items already present in group
+    #     layers"""
+    #     for item in group_layers:
+    #         if item.is_group():
+    #             self._initialise_controls(item)
+    #
+    #         self._add_item(item)
 
     def _add(self, event: Event) -> None:
         """Add the controls target item to the list of control widgets.
@@ -105,8 +105,15 @@ class QtGroupLayerControlsContainer(QtLayerControlsContainer):
             Item to add control widget for.
         """
         if item.is_group():
+            # Add controls for any items inside the group
+            for node in item:
+                self._add_item(node)
+
+            # Add controls for the group itself
             controls = QtGroupLayerControls()
-            # Need to also react to changes of selection in nested group layers
+            # Need to also react to changes in nested group layers
+            item.events.inserted.connect(self._add)
+            item.events.removed.connect(self._remove)
             item.selection.events.active.connect(self._display)
         else:
             layer = item.layer
@@ -150,9 +157,25 @@ class QtGroupLayerControlsContainer(QtLayerControlsContainer):
             Event with the target item at `event.value`.
         """
         item = event.value
-        controls = self.widgets[item]
-        self.removeWidget(controls)
-        controls.hide()
-        controls.deleteLater()
-        controls = None
-        del self.widgets[item]
+        self._remove_item(item)
+
+    def _remove_item(self, item: GroupLayer | GroupLayerNode):
+        """Remove the controls target item from the list of control widgets.
+
+        Parameters
+        ----------
+        item : GroupLayer or GroupLayerNode
+            Item to remove controls for.
+        """
+        if item.is_group():
+            # For groups, remove any controls of items nested inside
+            for node in item:
+                self._remove_item(node)
+
+        if item in self.widgets:
+            controls = self.widgets[item]
+            self.removeWidget(controls)
+            controls.hide()
+            controls.deleteLater()
+            controls = None
+            del self.widgets[item]

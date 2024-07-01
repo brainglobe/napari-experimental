@@ -6,6 +6,8 @@ from typing import Optional
 
 from napari._app_model.context import create_context
 from napari.layers import Layer
+from napari.utils.events import Event
+from napari.utils.events.containers._nested_list import MaybeNestedIndex
 from napari.utils.tree import Group
 
 from napari_experimental.group_layer_context import GroupLayerContextKeys
@@ -71,9 +73,9 @@ class GroupLayer(Group[GroupLayerNode], GroupLayerNode):
         if self._ctx is not None:  # happens during Viewer type creation
             self._ctx_keys = GroupLayerContextKeys(self._ctx)
             self.selection.events.changed.connect(self._ctx_keys.update)
-        self.selection.events.changed.connect(self._on_selection_changed)
+        self.selection.events.changed.connect(self._on_layer_selection_changed)
 
-    def _on_selection_changed(self, event):
+    def _on_layer_selection_changed(self, event):
         for item in event.added:
             if not item.is_group():
                 item.layer._on_selection(True)
@@ -104,6 +106,54 @@ class GroupLayer(Group[GroupLayerNode], GroupLayerNode):
                 if item._check_already_tracking(layer_ptr, recursive=True):
                     return True
         return False
+
+    def insert(self, index: int, value):
+        """Insert ``value`` as child of this group at position ``index``."""
+        if value.is_group():
+            # propagate relevant selection changes to nested group layers
+            self.selection.events.changed.connect(value._on_selection_changed)
+            self.selection.events._current.connect(value._on_current_changed)
+
+            # propagate relevant selection changes from nested group layers
+            # back to this group layer
+            value.selection.events.changed.connect(self._on_selection_changed)
+            value.selection.events._current.connect(self._on_current_changed)
+        super().insert(index, value)
+
+    def __delitem__(self, key: MaybeNestedIndex):
+        """Remove item at ``key``, and unparent."""
+        item = self[key]
+        if item.is_group():
+            item.selection.events.changed.disconnect(
+                self.parent._on_selection_changed
+            )
+            item.selection.events._current.disconnect(
+                self.parent._on_current_changed
+            )
+            self.selection.events.changed.disconnect(
+                item._on_selection_changed
+            )
+            self.selection.events._current.disconnect(item._on_current_changed)
+
+        super().__delitem__(key)
+
+    def _on_current_changed(self, event: Event):
+        item = event.value
+        if item in self and item != self:
+            self.selection._current = item
+        else:
+            self.selection._current = None
+
+    def _on_selection_changed(self, event: Event):
+        added = [item for item in event.added if item in self and item != self]
+        removed = [
+            item for item in event.removed if item in self and item != self
+        ]
+
+        if len(added) > 0:
+            self.selection.update(added)
+        if len(removed) > 0:
+            self.selection.difference_update(removed)
 
     def _node_name(self) -> str:
         """Will be used when rendering node tree as string."""
@@ -187,3 +237,23 @@ class GroupLayer(Group[GroupLayerNode], GroupLayerNode):
                     self.remove(node)
             elif node.layer is layer_ptr:
                 self.remove(node)
+
+    # For a real implementation, could be put directly inside
+    # SelectableNestableEventedList which currently just contains 'pass'
+    def all_selected_items(self):
+        selected_items = set()
+        for item in self.traverse():
+            if item.is_group():
+                selected_items = selected_items | item.selection
+
+        return selected_items
+        #
+        # if items is None:
+        #     items = set()
+        #
+        # for node in self:
+        #     if node.is_group():
+        #         items = items | node.selection
+        #         items = node.selected_items(items=items)
+        #
+        # return items
