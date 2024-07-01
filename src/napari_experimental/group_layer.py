@@ -302,17 +302,11 @@ class GroupLayer(Group[GroupLayerNode], GroupLayerNode):
                 previous_moves=previous_moves,
                 moves_prior_to_this_one=n_previous_insertions,
             )
-            actual_dest = self._revise_indices_based_on_previous_moves(
+            revised_dest = self._revise_indices_based_on_previous_moves(
                 original_index=dest_index,
                 original_dest=dest_index,
                 previous_moves=previous_moves,
                 moves_prior_to_this_one=n_previous_insertions,
-            )
-
-            # We should now be ready to yield the updated indices,
-            # after accounting for additional moves above the destination index
-            revised_dest = tuple(actual_dest[:-1]) + (
-                actual_dest[-1] + objects_moved_up,
             )
             yield revised_source, revised_dest
 
