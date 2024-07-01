@@ -123,8 +123,30 @@ class GroupLayer(Group[GroupLayerNode], GroupLayerNode):
         original_dest: NestedIndex,
         previous_moves: Dict[NestedIndex, List[int]],
         moves_prior_to_this_one: int,
-    ):
-        """ """
+    ) -> NestedIndex:
+        """
+        Intended for use during the multi_move process.
+        Given an index referencing a position in the tree prior to the
+        start of a multi-move, return the new index of the original
+        object that was referenced.
+
+        Parameters
+        ----------
+        original_index : NestedIndex
+            The original index of the item in the tree.
+        original_dest : NestedIndex
+            The original destination index of the item.
+        previous_moves : Dict[NestedIndex, List[int]]
+            A dictionary whose keys are indices of groups that have had items
+            moved prior to this one, and whose values are the indices in that
+            group which were moved. Group indices (keys) should use indices
+            from the original tree structure. The values however need to use
+            the updated position within the groups (accounting for previous
+            moves).
+        moves_prior_to_this_one: int
+            Number of moves in the multi move that have been carried out prior
+            to this one.
+        """
         revised_index = list(original_index)
         for ii in range(len(revised_index)):
             examining = original_index[: ii + 1]
@@ -148,7 +170,7 @@ class GroupLayer(Group[GroupLayerNode], GroupLayerNode):
                 nested_ind += moves_prior_to_this_one
             # Update this part of the group index with its new position
             revised_index[ii] = nested_ind
-        return revised_index
+        return tuple(revised_index)
 
     def _add_new_item(
         self,
@@ -271,29 +293,15 @@ class GroupLayer(Group[GroupLayerNode], GroupLayerNode):
         # dest_group_ind + (dest_ind,) is now the target insertion point for
         # the first item.
 
-        # For each source index src_i, we will need to decrement it by 1 for
-        # each item we have previously pulled out of the same group in front
-        # of src_i.
-        # However, this also needs to be done for parent groups that have also
-        # had children moved, which will in turn affect the earlier indices in
-        # the source index!
-
-        # Keys: nested indices of GROUPS that have had moves.
-        # Values: list of indices in the GROUP that have been moved.
         previous_moves = defaultdict(list)
         objects_moved_up = 0
         for n_previous_insertions, src in enumerate(to_move):
-            actual_src = self._revise_indices_based_on_previous_moves(
+            revised_source = self._revise_indices_based_on_previous_moves(
                 original_index=src,
                 original_dest=dest_index,
                 previous_moves=previous_moves,
                 moves_prior_to_this_one=n_previous_insertions,
             )
-            # actual_src now accounts for moves that have taken place prior to
-            # this one. We need to fix the (indices of the group parents of
-            # the) destination index in the same way though.
-            # We do NOT need to move the destination index itself as that is
-            # accounted for in the previous step when setting the source.
             actual_dest = self._revise_indices_based_on_previous_moves(
                 original_index=dest_index,
                 original_dest=dest_index,
@@ -301,18 +309,15 @@ class GroupLayer(Group[GroupLayerNode], GroupLayerNode):
                 moves_prior_to_this_one=n_previous_insertions,
             )
 
-            # We should now be ready to yield the updated indices.
-            revised_source = tuple(actual_src)
+            # We should now be ready to yield the updated indices,
+            # after accounting for additional moves above the destination index
             revised_dest = tuple(actual_dest[:-1]) + (
                 actual_dest[-1] + objects_moved_up,
             )
             yield revised_source, revised_dest
 
             # Record that a move occurred in the source group
-            # NOTE: Groups must be referred to by their index before accounting
-            # for previous moves, whereas the item moved must be referred to by
-            # its updated index within the group.
-            previous_moves[src[:-1]].append(actual_src[-1])
+            previous_moves[src[:-1]].append(revised_source[-1])
 
             # Account for moving items above the destination index.
             rev_src_grp, rev_src_ind = split_nested_index(revised_source)
