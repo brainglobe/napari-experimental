@@ -2,13 +2,15 @@ from __future__ import annotations
 
 import random
 import string
-from typing import Iterable, List, Literal, Optional
+from collections import defaultdict
+from typing import Dict, Iterable, List, Literal, Optional
 
 from napari.layers import Layer
 from napari.utils.events.containers._nested_list import (
     NestedIndex,
     split_nested_index,
 )
+from napari.utils.translations import trans
 from napari.utils.tree import Group
 
 from napari_experimental.group_layer_node import GroupLayerNode
@@ -115,6 +117,39 @@ class GroupLayer(Group[GroupLayerNode], GroupLayerNode):
             basetype=GroupLayerNode,
         )
 
+    def _revise_indices_based_on_previous_moves(
+        self,
+        original_index: NestedIndex,
+        original_dest: NestedIndex,
+        previous_moves: Dict[NestedIndex, List[int]],
+        moves_prior_to_this_one: int,
+    ):
+        """ """
+        revised_index = list(original_index)
+        for ii in range(len(revised_index)):
+            examining = original_index[: ii + 1]
+            nested_group_ind, nested_ind = split_nested_index(examining)
+
+            if nested_group_ind in previous_moves.keys():
+                # There has previous been at least 1 item moved around
+                # in this group prior to this move.
+                nested_ind -= sum(
+                    1
+                    for index in previous_moves[nested_group_ind]
+                    if index < nested_ind
+                )
+            orig_dest_group_ind, orig_dest_ind = split_nested_index(
+                original_dest
+            )
+            if (
+                nested_group_ind == orig_dest_group_ind
+                and nested_ind >= orig_dest_ind
+            ):
+                nested_ind += moves_prior_to_this_one
+            # Update this part of the group index with its new position
+            revised_index[ii] = nested_ind
+        return revised_index
+
     def _add_new_item(
         self,
         item_type: Literal["Node", "Group"],
@@ -179,6 +214,111 @@ class GroupLayer(Group[GroupLayerNode], GroupLayerNode):
             if group_items is None:
                 group_items = ()
             insertion_group.insert(insertion_index, GroupLayer(*group_items))
+
+    def _move_plan(
+        self, sources: Iterable[NestedIndex], dest_index: NestedIndex
+    ):
+        """Prepared indices for a multi-move.
+
+        Given a set of ``sources`` from anywhere in the list,
+        and a single ``dest_index``, this function computes and yields
+        ``(from_index, to_index)`` tuples that can be used sequentially in
+        single move operations.  It keeps track of what has moved where and
+        updates the source and destination indices to reflect the model at each
+        point in the process.
+
+        This is useful for a drag-drop operation with a QtModel/View.
+
+        Parameters
+        ----------
+        sources : Iterable[NestedIndex]
+            An iterable of NestedIndex that should be moved to ``dest_index``.
+        dest_index : Tuple[int]
+            The destination for sources.
+        """
+        if isinstance(dest_index, slice):
+            raise TypeError(
+                trans._(
+                    "Destination index may not be a slice",
+                    deferred=True,
+                )
+            )
+
+        to_move: List[NestedIndex] = []
+        for idx in sources:
+            if isinstance(idx, tuple):
+                to_move.append(idx)
+            elif isinstance(idx, int):
+                to_move.append((idx,))
+            elif isinstance(idx, slice):
+                to_move.extend(list(range(*idx.indices(len(self)))))
+                raise NotImplementedError("Should never hit this case?")
+            else:
+                raise TypeError(
+                    trans._(
+                        "Can only move integer or slice indices, not {t}",
+                        deferred=True,
+                        t=type(idx),
+                    )
+                )
+
+        dest_group_ind, dest_ind = split_nested_index(dest_index)
+        dest_group = self[dest_group_ind]
+        assert dest_group.is_group()
+        if dest_ind < 0:
+            dest_ind += len(dest_group) + 1
+            dest_index = dest_group_ind + (dest_ind,)
+        # dest_group_ind + (dest_ind,) is now the target insertion point for
+        # the first item.
+
+        # For each source index src_i, we will need to decrement it by 1 for
+        # each item we have previously pulled out of the same group in front
+        # of src_i.
+        # However, this also needs to be done for parent groups that have also
+        # had children moved, which will in turn affect the earlier indices in
+        # the source index!
+
+        # Keys: nested indices of GROUPS that have had moves.
+        # Values: list of indices in the GROUP that have been moved.
+        previous_moves = defaultdict(list)
+        objects_moved_up = 0
+        for n_previous_insertions, src in enumerate(to_move):
+            actual_src = self._revise_indices_based_on_previous_moves(
+                original_index=src,
+                original_dest=dest_index,
+                previous_moves=previous_moves,
+                moves_prior_to_this_one=n_previous_insertions,
+            )
+            # actual_src now accounts for moves that have taken place prior to
+            # this one. We need to fix the (indices of the group parents of
+            # the) destination index in the same way though.
+            # We do NOT need to move the destination index itself as that is
+            # accounted for in the previous step when setting the source.
+            actual_dest = self._revise_indices_based_on_previous_moves(
+                original_index=dest_index,
+                original_dest=dest_index,
+                previous_moves=previous_moves,
+                moves_prior_to_this_one=n_previous_insertions,
+            )
+
+            # We should now be ready to yield the updated indices.
+            revised_source = tuple(actual_src)
+            revised_dest = tuple(actual_dest[:-1]) + (
+                actual_dest[-1] + objects_moved_up,
+            )
+            yield revised_source, revised_dest
+
+            # Record that a move occurred in the source group
+            # NOTE: Groups must be referred to by their index before accounting
+            # for previous moves, whereas the item moved must be referred to by
+            # its updated index within the group.
+            previous_moves[src[:-1]].append(actual_src[-1])
+
+            # Account for moving items above the destination index.
+            rev_src_grp, rev_src_ind = split_nested_index(revised_source)
+            rev_dst_grp, rev_dst_ind = split_nested_index(revised_dest)
+            if rev_src_grp == rev_dst_grp and rev_dst_ind <= rev_src_ind:
+                objects_moved_up += 1
 
     def _node_name(self) -> str:
         """Will be used when rendering node tree as string."""
