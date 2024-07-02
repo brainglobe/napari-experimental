@@ -117,12 +117,11 @@ class GroupLayer(Group[GroupLayerNode], GroupLayerNode):
             basetype=GroupLayerNode,
         )
 
+    @staticmethod
     def _revise_indices_based_on_previous_moves(
-        self,
         original_index: NestedIndex,
         original_dest: NestedIndex,
         previous_moves: Dict[NestedIndex, List[int]],
-        moves_prior_to_this_one: int,
     ) -> NestedIndex:
         """
         Intended for use during the multi_move process.
@@ -143,10 +142,10 @@ class GroupLayer(Group[GroupLayerNode], GroupLayerNode):
             from the original tree structure. The values however need to use
             the updated position within the groups (accounting for previous
             moves).
-        moves_prior_to_this_one: int
-            Number of moves in the multi move that have been carried out prior
-            to this one.
         """
+        moves_prior_to_this_one = sum(
+            len(list_of_indices) for list_of_indices in previous_moves.values()
+        )
         revised_index = list(original_index)
         for ii in range(len(revised_index)):
             examining = original_index[: ii + 1]
@@ -168,6 +167,15 @@ class GroupLayer(Group[GroupLayerNode], GroupLayerNode):
                 and nested_ind >= orig_dest_ind
             ):
                 nested_ind += moves_prior_to_this_one
+                # But do not double-count moves we've already accounted for
+                # previously (EG moving item 1 to position 0 will be counted
+                # once as a prior move, and once as a previous_move)
+                if nested_group_ind in previous_moves.keys():
+                    nested_ind -= sum(
+                        1
+                        for index in previous_moves[nested_group_ind]
+                        if index < orig_dest_ind
+                    )
             # Update this part of the group index with its new position
             revised_index[ii] = nested_ind
         return tuple(revised_index)
@@ -295,22 +303,23 @@ class GroupLayer(Group[GroupLayerNode], GroupLayerNode):
 
         previous_moves = defaultdict(list)
         objects_moved_up = 0
-        for n_previous_insertions, src in enumerate(to_move):
+        for src in to_move:
             revised_source = self._revise_indices_based_on_previous_moves(
                 original_index=src,
                 original_dest=dest_index,
                 previous_moves=previous_moves,
-                moves_prior_to_this_one=n_previous_insertions,
             )
             revised_dest = self._revise_indices_based_on_previous_moves(
                 original_index=dest_index,
                 original_dest=dest_index,
                 previous_moves=previous_moves,
-                moves_prior_to_this_one=n_previous_insertions,
             )
             yield revised_source, revised_dest
 
-            # Record that a move occurred in the source group
+            # Record that a move occurred in the source group.
+            # Note that the sum of the lengths of the values of this
+            # dict is equal to the number of moves in the multi-move
+            # we have done so far.
             previous_moves[src[:-1]].append(revised_source[-1])
 
             # Account for moving items above the destination index.

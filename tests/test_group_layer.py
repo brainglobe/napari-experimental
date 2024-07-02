@@ -1,4 +1,4 @@
-from typing import Callable, Dict
+from typing import Callable, Dict, List
 
 import pytest
 from napari.layers import Points
@@ -192,3 +192,70 @@ def test_add_group(
     assert (
         len(added_group) == 2
     ), "Additional items added to the Group upon creation."
+
+
+@pytest.mark.parametrize(
+    [
+        "o_index",
+        "d_index",
+        "previous_moves",
+        "expected_index",
+    ],
+    [
+        pytest.param((0,), (2,), {}, (0,), id="No previous interference"),
+        pytest.param(
+            (2,),
+            (0,),
+            {(): [1]},
+            (2,),
+            id="1 previous move, but it was from a position above "
+            "the original to a position above the original",
+        ),
+        pytest.param(
+            (2,),
+            (0,),
+            {(1,): [0]},
+            (3,),
+            id="1 previous move, from another group to a position above.",
+        ),
+        pytest.param(
+            (2,),
+            (3,),
+            {(1,): [0]},
+            (2,),
+            id="1 previous move, to a position below the original.",
+        ),
+        pytest.param(
+            (2,),
+            (1, 2),
+            {(): [0, 4]},
+            (1,),
+            id="2 previous moves, only 1 of which conflicts",
+        ),
+        pytest.param(
+            (1, 2, 1),
+            (1, 3, 0),
+            {(): [0], (1,): [0, 4], (1, 2): [0]},
+            (0, 1, 0),
+            id="Group indices affected by moves",
+        ),
+    ],
+)
+def test_revise_indicies(
+    nested_layer_group: GroupLayer,
+    o_index: List[NestedIndex],
+    d_index: NestedIndex,
+    previous_moves: Dict[NestedIndex, List[int]],
+    expected_index: NestedIndex,
+) -> None:
+    computed_index = (
+        nested_layer_group._revise_indices_based_on_previous_moves(
+            original_index=o_index,
+            original_dest=d_index,
+            previous_moves=previous_moves,
+        )
+    )
+    assert computed_index == expected_index, (
+        "Did not provide correct expected index, "
+        f"got {computed_index} but expected {expected_index}"
+    )
