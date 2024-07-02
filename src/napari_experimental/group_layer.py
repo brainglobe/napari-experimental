@@ -117,6 +117,11 @@ class GroupLayer(Group[GroupLayerNode], GroupLayerNode):
             basetype=GroupLayerNode,
         )
 
+    def move_multiple(
+        self, sources: Iterable[int | slice], dest_index: int = 0
+    ) -> int:
+        return super().move_multiple(sources, dest_index)
+
     @staticmethod
     def _revise_indices_based_on_previous_moves(
         original_index: NestedIndex,
@@ -138,10 +143,9 @@ class GroupLayer(Group[GroupLayerNode], GroupLayerNode):
         previous_moves : Dict[NestedIndex, List[int]]
             A dictionary whose keys are indices of groups that have had items
             moved prior to this one, and whose values are the indices in that
-            group which were moved. Group indices (keys) should use indices
-            from the original tree structure. The values however need to use
-            the updated position within the groups (accounting for previous
-            moves).
+            group which were moved. All indices (for Groups and Nodes) should
+            use the original indexing convention (prior to the application of
+            any moves).
         """
         moves_prior_to_this_one = sum(
             len(list_of_indices) for list_of_indices in previous_moves.values()
@@ -150,32 +154,38 @@ class GroupLayer(Group[GroupLayerNode], GroupLayerNode):
         for ii in range(len(revised_index)):
             examining = original_index[: ii + 1]
             nested_group_ind, nested_ind = split_nested_index(examining)
+            old_position_in_this_group = nested_ind
 
-            if nested_group_ind in previous_moves.keys():
-                # There has previous been at least 1 item moved around
-                # in this group prior to this move.
+            if nested_group_ind in previous_moves:
+                # Every move that took out an item above this one will decrease
+                # the effective index by 1
                 nested_ind -= sum(
                     1
                     for index in previous_moves[nested_group_ind]
-                    if index < nested_ind
+                    if index < old_position_in_this_group
                 )
+            # If this item lives in the same group as the destination index,
+            # and it is BELOW or AT the destination index, it will now have
+            # moved down a number of indices equal to the number of previous
+            # moves.
             orig_dest_group_ind, orig_dest_ind = split_nested_index(
                 original_dest
             )
             if (
                 nested_group_ind == orig_dest_group_ind
-                and nested_ind >= orig_dest_ind
+                and old_position_in_this_group >= orig_dest_ind
             ):
                 nested_ind += moves_prior_to_this_one
-                # But do not double-count moves we've already accounted for
-                # previously (EG moving item 1 to position 0 will be counted
-                # once as a prior move, and once as a previous_move)
-                if nested_group_ind in previous_moves.keys():
-                    nested_ind -= sum(
-                        1
-                        for index in previous_moves[nested_group_ind]
-                        if index < orig_dest_ind
-                    )
+                # However, items that were already in this group and ABOVE the
+                # destination don't actually increase the index of this item.
+                # So we should subtract their contribution here.
+                # if nested_group_ind in previous_moves:
+                #     nested_ind += sum(
+                #         1
+                #         for index in previous_moves[nested_group_ind]
+                #         if index < orig_dest_ind
+                #     )
+
             # Update this part of the group index with its new position
             revised_index[ii] = nested_ind
         return tuple(revised_index)
@@ -320,7 +330,8 @@ class GroupLayer(Group[GroupLayerNode], GroupLayerNode):
             # Note that the sum of the lengths of the values of this
             # dict is equal to the number of moves in the multi-move
             # we have done so far.
-            previous_moves[src[:-1]].append(revised_source[-1])
+            # previous_moves[src[:-1]].append(revised_source[-1])
+            previous_moves[src[:-1]].append(src[-1])
 
             # Account for moving items above the destination index.
             rev_src_grp, rev_src_ind = split_nested_index(revised_source)

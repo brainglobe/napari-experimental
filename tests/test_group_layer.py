@@ -1,4 +1,4 @@
-from typing import Callable, Dict, List
+from typing import Callable, Dict, Iterable, List, Tuple
 
 import pytest
 from napari.layers import Points
@@ -239,23 +239,66 @@ def test_add_group(
             (0, 1, 0),
             id="Group indices affected by moves",
         ),
+        pytest.param((2,), (2,), {(): [0]}, (2,), id="Foobar"),
     ],
 )
 def test_revise_indicies(
-    nested_layer_group: GroupLayer,
     o_index: List[NestedIndex],
     d_index: NestedIndex,
     previous_moves: Dict[NestedIndex, List[int]],
     expected_index: NestedIndex,
 ) -> None:
-    computed_index = (
-        nested_layer_group._revise_indices_based_on_previous_moves(
-            original_index=o_index,
-            original_dest=d_index,
-            previous_moves=previous_moves,
-        )
+    computed_index = GroupLayer._revise_indices_based_on_previous_moves(
+        original_index=o_index,
+        original_dest=d_index,
+        previous_moves=previous_moves,
     )
     assert computed_index == expected_index, (
         "Did not provide correct expected index, "
         f"got {computed_index} but expected {expected_index}"
     )
+
+
+@pytest.mark.parametrize(
+    ["sources", "destination", "expected_plan"],
+    [
+        pytest.param(
+            ((0,), (1,)),
+            (2,),
+            [((0,), (2,)), ((0,), (2,))],
+            id="Move 0 and 1 to index 2. ",
+            # (0,) moves to (2,) without problems.
+            # (1,) is now index (0,);
+            #   -1 for the previous move taking an element from ABOVE this one,
+            # The destination is (2,);
+            #   +1:  being the 2nd move in the list,
+            #   -1: previous move taking an element from ABOVE this one,
+        )
+    ],
+)
+def test_move_plan(
+    nested_layer_group: GroupLayer,
+    sources: Iterable[NestedIndex],
+    destination: NestedIndex,
+    expected_plan: List[Tuple[NestedIndex, NestedIndex]],
+) -> None:
+    generated_pairs = list(
+        nested_layer_group._move_plan(sources=sources, dest_index=destination)
+    )
+    assert len(generated_pairs) == len(
+        expected_plan
+    ), "Plan and expected plan do not have the same number of elements"
+
+    # Could do a direct comparison of lists,
+    # but provide more granular detail here
+    for i, g_pair in enumerate(generated_pairs):
+        e_pair = expected_plan[i]
+        for ii, type in enumerate(["source", "destination"]):
+            assert g_pair[ii] == e_pair[ii], (
+                f"Move {i} {type}s do not agree: "
+                f"expected {type} at {e_pair[ii]} "
+                f"but was informed it was at {g_pair[ii]}"
+            )
+
+    nested_layer_group.move_multiple(sources, destination)
+    pass
