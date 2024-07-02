@@ -312,7 +312,6 @@ class GroupLayer(Group[GroupLayerNode], GroupLayerNode):
         # the first item.
 
         previous_moves = defaultdict(list)
-        objects_moved_up = 0
         for src in to_move:
             revised_source = self._revise_indices_based_on_previous_moves(
                 original_index=src,
@@ -332,12 +331,6 @@ class GroupLayer(Group[GroupLayerNode], GroupLayerNode):
             # we have done so far.
             # previous_moves[src[:-1]].append(revised_source[-1])
             previous_moves[src[:-1]].append(src[-1])
-
-            # Account for moving items above the destination index.
-            rev_src_grp, rev_src_ind = split_nested_index(revised_source)
-            rev_dst_grp, rev_dst_ind = split_nested_index(revised_dest)
-            if rev_src_grp == rev_dst_grp and rev_dst_ind <= rev_src_ind:
-                objects_moved_up += 1
 
     def _node_name(self) -> str:
         """Will be used when rendering node tree as string."""
