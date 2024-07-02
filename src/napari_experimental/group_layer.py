@@ -253,7 +253,7 @@ class GroupLayer(Group[GroupLayerNode], GroupLayerNode):
     def _move_plan(
         self, sources: Iterable[NestedIndex], dest_index: NestedIndex
     ):
-        """Prepared indices for a multi-move.
+        """Prepare indices for a multi-move.
 
         Given a set of ``sources`` from anywhere in the list,
         and a single ``dest_index``, this function computes and yields
@@ -296,6 +296,11 @@ class GroupLayer(Group[GroupLayerNode], GroupLayerNode):
                         t=type(idx),
                     )
                 )
+
+        # (Relative) flat index order must be preserved when moving multiple
+        # items, so sort the order of the sources here to ensure consistency.
+        flat_order = self.flat_index_order(include_groups=True)
+        to_move = sorted(to_move, key=lambda x: flat_order.index(x))
 
         dest_group_ind, dest_ind = split_nested_index(dest_index)
         dest_group = self[dest_group_ind]
@@ -456,15 +461,6 @@ class GroupLayer(Group[GroupLayerNode], GroupLayerNode):
         tree.
         """
         return True  # A GroupLayer is ALWAYS a branch.
-
-    def move_multiple(
-        self, sources: Iterable[NestedIndex], dest_index: int = 0
-    ) -> int:
-        # (Relative) flat index order must be preserved when moving multiple
-        # items, so sort the order of the sources here to ensure consistency.
-        flat_order = self.flat_index_order(include_groups=True)
-        sources = sorted(sources, key=lambda x: flat_order.index(x))
-        return super().move_multiple(sources=sources, dest_index=dest_index)
 
     def remove_layer_item(self, layer_ptr: Layer, prune: bool = True) -> None:
         """

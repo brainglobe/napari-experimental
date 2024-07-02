@@ -291,7 +291,13 @@ def test_revise_indicies(
             # The destination is (2,);
             #   +1:  being the 2nd move in the list,
             #   -1: previous move taking an element from ABOVE this one,
-        )
+        ),
+        pytest.param(
+            ((0,), (1, 0)),
+            (-1,),
+            [((0,), (4,)), ((0, 0), (4,))],
+            id="Move two items from different subgroups to the end.",
+        ),
     ],
 )
 def test_move_plan(
