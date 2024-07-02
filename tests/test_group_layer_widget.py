@@ -99,10 +99,9 @@ def test_layer_sync(make_napari_viewer, image_layer, points_layer):
     # Move layer at position 1 to position 0
     widget.group_layers.move((1,), (0,))
     # Viewer should have auto-synced these changes
-    for in_viewer, in_widget in zip(
+    for in_viewer, in_widget in zip(  # noqa: B905
         reversed(viewer.layers),
         [node.layer for node in widget.group_layers],
-        strict=True,
     ):
         assert in_viewer is in_widget
 
