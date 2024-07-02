@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
@@ -15,6 +16,7 @@ if TYPE_CHECKING:
     from qtpy.QtWidgets import QWidget
 
 
+logger = logging.getLogger(__name__)
 ThumbnailRole = Qt.UserRole + 2
 
 
@@ -119,3 +121,16 @@ class QtGroupLayerView(QtNodeTreeView):
         self.model().rowsRemoved.connect(self._redecorate_root)
         self.model().rowsInserted.connect(self._redecorate_root)
         self._redecorate_root()
+
+    def dropEvent(self, event):
+        # On drag and drop, selectionChanged isn't fired as the same items
+        # remain selected in the view, and just their indexes/position is
+        # changed. Here we force the view selection to be synced to the model
+        # after drag and drop.
+        super().dropEvent(event)
+        self.sync_selection_from_view_to_model()
+
+    def sync_selection_from_view_to_model(self):
+        """Force model / group layer to select the same items as the view"""
+        selected = [self.model().getItem(qi) for qi in self.selectedIndexes()]
+        self._root.propagate_selection(event=None, new_selection=selected)

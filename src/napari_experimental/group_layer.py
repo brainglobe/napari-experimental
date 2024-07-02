@@ -6,6 +6,7 @@ from typing import Optional
 
 from napari._app_model.context import create_context
 from napari.layers import Layer
+from napari.utils.events import Event
 from napari.utils.tree import Group
 
 from napari_experimental.group_layer_context import GroupLayerContextKeys
@@ -68,12 +69,15 @@ class GroupLayer(Group[GroupLayerNode], GroupLayerNode):
 
         # Match context creation of layerlist init
         self._ctx = create_context(self)
-        if self._ctx is not None:  # happens during Viewer type creation
+        if self._ctx is not None:
             self._ctx_keys = GroupLayerContextKeys(self._ctx)
             self.selection.events.changed.connect(self._ctx_keys.update)
-        self.selection.events.changed.connect(self._on_selection_changed)
+        self.selection.events.changed.connect(self._on_layer_selection_changed)
 
-    def _on_selection_changed(self, event):
+        # If selection changes on this node, propagate changes to any children
+        self.selection.events.changed.connect(self.propagate_selection)
+
+    def _on_layer_selection_changed(self, event):
         for item in event.added:
             if not item.is_group():
                 item.layer._on_selection(True)
@@ -187,3 +191,37 @@ class GroupLayer(Group[GroupLayerNode], GroupLayerNode):
                     self.remove(node)
             elif node.layer is layer_ptr:
                 self.remove(node)
+
+    def propagate_selection(
+        self,
+        event: Optional[Event] = None,
+        new_selection: Optional[list[GroupLayer | GroupLayerNode]] = None,
+    ) -> None:
+        """
+        Propagate selection from this node to all its children. This is
+        necessary to keep the .selection consistent at all levels in the tree.
+
+        This prevents scenarios where e.g. a tree like
+        Root
+        - Points_0
+          - Group_A
+          - Points_A0
+        could have Points_A0 selected on Root (appearing in its .selection),
+        but not on Group_A (not appearing in its .selection)
+
+        Parameters
+        ----------
+        event: selection changed event that triggers this propagation
+        new_selection: List of group layer / group layer node to be selected.
+            If none, it will use the current selection on this node.
+        """
+        if new_selection is None:
+            new_selection = self.selection
+
+        self.selection.intersection_update(new_selection)
+        self.selection.update(new_selection)
+
+        for g in [group for group in self if group.is_group()]:
+            # filter for things in this group
+            relevent_selection = [node for node in new_selection if node in g]
+            g.propagate_selection(event=None, new_selection=relevent_selection)

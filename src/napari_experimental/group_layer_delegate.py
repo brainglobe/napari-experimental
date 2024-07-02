@@ -90,11 +90,15 @@ class GroupLayerDelegate(LayerDelegate):
         """Show the layerlist context menu.
         To add a new item to the menu, update the _LAYER_ACTIONS dict.
         """
-        if not hasattr(self, "_context_menu"):
-            self._context_menu = build_qmodel_menu(
-                GROUP_LAYER_CONTEXT, parent=parent
-            )
+        item = index.data(ItemRole)
 
-        group_layer: GroupLayer = model._root
-        self._context_menu.update_from_context(get_context(group_layer))
-        self._context_menu.exec_(pos)
+        # For now, don't show the right click context menu for groups.
+        if not item.is_group():
+            if not hasattr(self, "_context_menu"):
+                self._context_menu = build_qmodel_menu(
+                    GROUP_LAYER_CONTEXT, parent=parent
+                )
+
+            group_layer: GroupLayer = model._root
+            self._context_menu.update_from_context(get_context(group_layer))
+            self._context_menu.exec_(pos)
