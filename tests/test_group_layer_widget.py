@@ -66,3 +66,42 @@ def test_double_click_edit(group_layer_widget, double_click_on_view):
     node_index = group_layers_model.index(0, 0)
     double_click_on_view(group_layers_view, node_index)
     assert group_layers_view.state() == group_layers_view.EditingState
+
+
+def test_layer_sync(make_napari_viewer, blobs, points):
+    """
+    Test the synchronisation between the widget and the main LayerList.
+    This test will be redundant when the plugin functionality replaces the
+    main viewer functionality.
+    """
+    viewer = make_napari_viewer()
+    viewer.add_image(blobs)
+
+    widget = GroupLayerWidget(viewer)
+    assert len(widget.group_layers) == 1
+
+    # Check that adding a layer to the viewer means it is also added to
+    # the group layers view.
+
+    viewer.add_points(points)
+    assert len(widget.group_layers) == 2
+
+    # Check that reordering the layer order in the group layers view
+    # forces an update in the main viewer.
+    # However, don't forget that the ordering is REVERSED in the GUI, so
+    # viewer.layers[-1] == widget.group_layers[0], etc.
+    for in_viewer, in_widget in zip(
+        reversed(viewer.layers),
+        [node.layer for node in widget.group_layers],
+        strict=True,
+    ):
+        assert in_viewer is in_widget
+    # Move layer at position 1 to position 0
+    widget.group_layers.move((1,), (0,))
+    # Viewer should have auto-synced these changes
+    for in_viewer, in_widget in zip(
+        reversed(viewer.layers),
+        [node.layer for node in widget.group_layers],
+        strict=True,
+    ):
+        assert in_viewer is in_widget
