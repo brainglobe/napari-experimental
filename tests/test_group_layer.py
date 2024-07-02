@@ -90,31 +90,50 @@ def test_check_is_already_tracking(
     )
 
 
-def test_flat_index(nested_layer_group: GroupLayer) -> None:
-    """
-    - Points_0
-    - Group_A
-      - Points_A0
-      - Group_AA
-        - Points_AA0
-        - Points_AA1
-      - Points_A1
-    - Points_1
-    - Group_B
-      - Points_B0
-    """
-    flat_order = nested_layer_group.flat_index_order()
-    expected_flat_order = [
-        (0,),  # Points_0
-        (1, 0),  # Points_A0
-        (1, 1, 0),  # Points_AA0
-        (1, 1, 1),  # Points_AA1
-        (1, 2),  # Points_A1
-        (2,),  # Points_1
-        (3, 0),  # Points_B0
-    ]
+@pytest.mark.parametrize(
+    ["with_groups", "expected_order"],
+    [
+        pytest.param(
+            False,
+            [
+                (0,),  # Points_0
+                (1, 0),  # Points_A0
+                (1, 1, 0),  # Points_AA0
+                (1, 1, 1),  # Points_AA1
+                (1, 2),  # Points_A1
+                (2,),  # Points_1
+                (3, 0),  # Points_B0
+            ],
+            id="without Groups",
+        ),
+        pytest.param(
+            True,
+            [
+                (0,),  # Points_0
+                (1,),  # Group_A
+                (1, 0),  # Points_A0
+                (1, 1),  # Group_AA
+                (1, 1, 0),  # Points_AA0
+                (1, 1, 1),  # Points_AA1
+                (1, 2),  # Points_A1
+                (2,),  # Points_1
+                (3,),  # Group_B
+                (3, 0),  # Points_B0
+            ],
+            id="Including Groups",
+        ),
+    ],
+)
+def test_flat_index(
+    nested_layer_group: GroupLayer,
+    with_groups: bool,
+    expected_order: List[NestedIndex],
+) -> None:
+    flat_order = nested_layer_group.flat_index_order(
+        include_groups=with_groups
+    )
     for i, returned_nested_index in enumerate(flat_order):
-        expected_nested_index = expected_flat_order[i]
+        expected_nested_index = expected_order[i]
         assert expected_nested_index == returned_nested_index, (
             f"Mismatch at position {i}: "
             f"got {returned_nested_index} but expected {expected_nested_index}"
@@ -239,7 +258,6 @@ def test_add_group(
             (0, 1, 0),
             id="Group indices affected by moves",
         ),
-        pytest.param((2,), (2,), {(): [0]}, (2,), id="Foobar"),
     ],
 )
 def test_revise_indicies(
@@ -266,7 +284,7 @@ def test_revise_indicies(
             ((0,), (1,)),
             (2,),
             [((0,), (2,)), ((0,), (2,))],
-            id="Move 0 and 1 to index 2. ",
+            id="Effectively doing nothing: (0,) + (1,) -> (2,)",
             # (0,) moves to (2,) without problems.
             # (1,) is now index (0,);
             #   -1 for the previous move taking an element from ABOVE this one,

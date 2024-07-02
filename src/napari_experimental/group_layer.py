@@ -117,11 +117,6 @@ class GroupLayer(Group[GroupLayerNode], GroupLayerNode):
             basetype=GroupLayerNode,
         )
 
-    def move_multiple(
-        self, sources: Iterable[int | slice], dest_index: int = 0
-    ) -> int:
-        return super().move_multiple(sources, dest_index)
-
     @staticmethod
     def _revise_indices_based_on_previous_moves(
         original_index: NestedIndex,
@@ -406,7 +401,9 @@ class GroupLayer(Group[GroupLayerNode], GroupLayerNode):
                     return True
         return False
 
-    def flat_index_order(self) -> List[NestedIndex]:
+    def flat_index_order(
+        self, include_groups: bool = False
+    ) -> List[NestedIndex]:
         """
         Return a list of NestedIndex-es, whose order corresponds to
         the flat order of the Nodes in the tree.
@@ -417,16 +414,22 @@ class GroupLayer(Group[GroupLayerNode], GroupLayerNode):
 
         An example is given in the tree below:
 
-        Tree                Flat Index
-        - Node_0            0
-        - Node_1            1
-        - Group_A           n/a
-            - Node_A0       3
-            - Node_A1       4
-            - Group_AA      n/a
-                - Node_AA0  5
-            - Node_A2       6
-        - Node_2            7
+        Tree                Flat Index  include_groups
+        - Node_0            0           0
+        - Node_1            1           1
+        - Group_A           n/a         2
+            - Node_A0       2           3
+            - Node_A1       3           4
+            - Group_AA      n/a         5
+                - Node_AA0  4           6
+            - Node_A2       5           7
+        - Node_2            6           8
+
+        Parameters
+        ----------
+        include_groups : bool, default = False
+            Whether to assign groups their own place in the order,
+            or to skip over them.
         """
         order: List[NestedIndex] = []
         for item in self:
@@ -434,7 +437,9 @@ class GroupLayer(Group[GroupLayerNode], GroupLayerNode):
                 # This is a group, descend into it and append
                 # its ordering to our current ordering
                 item: GroupLayer
-                order += item.flat_index_order()
+                if include_groups:
+                    order.append(item.index_from_root())
+                order += item.flat_index_order(include_groups=include_groups)
             else:
                 # This is just a node, and it is the next one in
                 # the order
@@ -451,6 +456,15 @@ class GroupLayer(Group[GroupLayerNode], GroupLayerNode):
         tree.
         """
         return True  # A GroupLayer is ALWAYS a branch.
+
+    def move_multiple(
+        self, sources: Iterable[NestedIndex], dest_index: int = 0
+    ) -> int:
+        # (Relative) flat index order must be preserved when moving multiple
+        # items, so sort the order of the sources here to ensure consistency.
+        flat_order = self.flat_index_order(include_groups=True)
+        sources = sorted(sources, key=lambda x: flat_order.index(x))
+        return super().move_multiple(sources=sources, dest_index=dest_index)
 
     def remove_layer_item(self, layer_ptr: Layer, prune: bool = True) -> None:
         """
