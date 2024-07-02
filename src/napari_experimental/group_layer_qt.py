@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING, Any
 from napari._qt.containers import QtNodeTreeModel, QtNodeTreeView
 from napari._qt.qt_resources import get_current_stylesheet
 from qtpy.QtCore import QModelIndex, QSize, Qt
-from qtpy.QtGui import QImage
+from qtpy.QtGui import QDropEvent, QImage
 
 from napari_experimental.group_layer import GroupLayer
 from napari_experimental.group_layer_delegate import GroupLayerDelegate
@@ -122,7 +122,7 @@ class QtGroupLayerView(QtNodeTreeView):
         self.model().rowsInserted.connect(self._redecorate_root)
         self._redecorate_root()
 
-    def dropEvent(self, event):
+    def dropEvent(self, event: QDropEvent):
         # On drag and drop, selectionChanged isn't fired as the same items
         # remain selected in the view, and just their indexes/position is
         # changed. Here we force the view selection to be synced to the model

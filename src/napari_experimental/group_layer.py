@@ -72,18 +72,9 @@ class GroupLayer(Group[GroupLayerNode], GroupLayerNode):
         if self._ctx is not None:
             self._ctx_keys = GroupLayerContextKeys(self._ctx)
             self.selection.events.changed.connect(self._ctx_keys.update)
-        self.selection.events.changed.connect(self._on_layer_selection_changed)
 
         # If selection changes on this node, propagate changes to any children
         self.selection.events.changed.connect(self.propagate_selection)
-
-    def _on_layer_selection_changed(self, event):
-        for item in event.added:
-            if not item.is_group():
-                item.layer._on_selection(True)
-        for item in event.removed:
-            if not item.is_group():
-                item.layer._on_selection(False)
 
     def _check_already_tracking(
         self, layer_ptr: Layer, recursive: bool = True

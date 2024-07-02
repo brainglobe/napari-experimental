@@ -14,6 +14,7 @@ GROUP_LAYER_CONTEXT = "napari/grouplayers/context"
 
 
 def _toggle_visibility(gl: GroupLayer):
+    """Toggle the visibility of all selected layers inside the group layers"""
     for item in gl.selection:
         if not item.is_group():
             visibility = item.layer.visible

@@ -32,6 +32,8 @@ class GroupLayerWidget(QWidget):
         super().__init__()
 
         self.viewer = viewer
+
+        # Register actions for right click menu
         get_app().register_actions(GROUP_LAYER_ACTIONS)
         get_app().injection_store.register(
             providers=[(self._provide_active_group_layer,)]
@@ -60,9 +62,9 @@ class GroupLayerWidget(QWidget):
         self.layout().addWidget(self.add_group_button)
         self.layout().addWidget(self.group_layers_view)
 
-    # Provider for active group_layer, in style of
-    # _app_model/injection/_providers.py in napari
     def _provide_active_group_layer(self) -> Optional[GroupLayer]:
+        """Provider for active group_layer, in style of
+        _app_model/injection/_providers.py in napari"""
         return self.group_layers
 
     def _new_layer_group(self) -> None:

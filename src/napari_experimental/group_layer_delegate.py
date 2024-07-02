@@ -10,7 +10,7 @@ from napari._qt.containers._layer_delegate import LayerDelegate
 from napari._qt.containers.qt_layer_model import ThumbnailRole
 from napari._qt.qt_resources import QColoredSVGIcon
 from qtpy.QtCore import QPoint, QSize, Qt
-from qtpy.QtGui import QMouseEvent, QPixmap
+from qtpy.QtGui import QMouseEvent, QPainter, QPixmap
 
 from napari_experimental.group_layer import GroupLayer
 from napari_experimental.group_layer_actions import GROUP_LAYER_CONTEXT
@@ -18,6 +18,11 @@ from napari_experimental.group_layer_actions import GROUP_LAYER_CONTEXT
 if TYPE_CHECKING:
     from qtpy import QtCore
     from qtpy.QtWidgets import QStyleOptionViewItem
+
+    from napari_experimental.group_layer_qt import (
+        QtGroupLayerModel,
+        QtGroupLayerView,
+    )
 
 
 class GroupLayerDelegate(LayerDelegate):
@@ -54,7 +59,12 @@ class GroupLayerDelegate(LayerDelegate):
         )  # put icon on the right
         option.features |= option.ViewItemFeature.HasDecoration
 
-    def _paint_thumbnail(self, painter, option, index):
+    def _paint_thumbnail(
+        self,
+        painter: QPainter,
+        option: QStyleOptionViewItem,
+        index: QtCore.QModelIndex,
+    ):
         """paint the layer thumbnail - same as in LayerDelegate, but allows
         there to be no thumbnail for group layers"""
         # paint the thumbnail
@@ -75,10 +85,7 @@ class GroupLayerDelegate(LayerDelegate):
         option: QStyleOptionViewItem,
         index: QtCore.QModelIndex,
     ) -> bool:
-        """Called when an event has occured in the editor.
-
-        This can be used to customize how the delegate handles mouse/key events
-        """
+        """Called when an event has occurred in the editor"""
         # if the user clicks quickly on the visibility checkbox, we *don't*
         # want it to be interpreted as a double-click. Ignore this event
         if event.type() == QMouseEvent.MouseButtonDblClick:
@@ -86,9 +93,15 @@ class GroupLayerDelegate(LayerDelegate):
         # refer all other events to LayerDelegate
         return super().editorEvent(event, model, option, index)
 
-    def show_context_menu(self, index, model, pos: QPoint, parent):
-        """Show the layerlist context menu.
-        To add a new item to the menu, update the _LAYER_ACTIONS dict.
+    def show_context_menu(
+        self,
+        index: QtCore.QModelIndex,
+        model: QtGroupLayerModel,
+        pos: QPoint,
+        parent: QtGroupLayerView,
+    ):
+        """Show the group layer context menu.
+        To add a new item to the menu, update the GROUP_LAYER_ACTIONS.
         """
         item = index.data(ItemRole)
 
