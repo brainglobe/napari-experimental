@@ -171,15 +171,6 @@ class GroupLayer(Group[GroupLayerNode], GroupLayerNode):
                 and old_position_in_this_group >= orig_dest_ind
             ):
                 nested_ind += moves_prior_to_this_one
-                # However, items that were already in this group and ABOVE the
-                # destination don't actually increase the index of this item.
-                # So we should subtract their contribution here.
-                # if nested_group_ind in previous_moves:
-                #     nested_ind += sum(
-                #         1
-                #         for index in previous_moves[nested_group_ind]
-                #         if index < orig_dest_ind
-                #     )
 
             # Update this part of the group index with its new position
             revised_index[ii] = nested_ind
