@@ -112,14 +112,10 @@ class GroupLayerDelegate(LayerDelegate):
         """Show the group layer context menu.
         To add a new item to the menu, update the GroupLayerActions.
         """
-        item = index.data(ItemRole)
+        if not hasattr(self, "_context_menu"):
+            self._group_layer_actions = GroupLayerActions(model._root)
+            self._context_menu = ContextMenu(
+                self._group_layer_actions, parent=parent
+            )
 
-        # For now, don't show the right click context menu for groups.
-        if not item.is_group():
-            if not hasattr(self, "_context_menu"):
-                self._group_layer_actions = GroupLayerActions(model._root)
-                self._context_menu = ContextMenu(
-                    self._group_layer_actions, parent=parent
-                )
-
-            self._context_menu.exec_(pos)
+        self._context_menu.exec_(pos)
