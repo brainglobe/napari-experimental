@@ -1,16 +1,47 @@
 import pytest
 from napari_experimental._widget import GroupLayerWidget
 from napari_experimental.group_layer import GroupLayer, GroupLayerNode
+from napari_experimental.group_layer_actions import GroupLayerActions
 from napari_experimental.group_layer_delegate import GroupLayerDelegate
-from qtpy.QtCore import QPoint
+from qtpy.QtCore import QPoint, Qt
 from qtpy.QtWidgets import QWidget
 
 
 @pytest.fixture()
 def group_layer_widget(make_napari_viewer, blobs):
+    """Group layer widget with one image layer"""
     viewer = make_napari_viewer()
     viewer.add_image(blobs)
     return GroupLayerWidget(viewer)
+
+
+@pytest.fixture()
+def group_layer_widget_with_nested_groups(
+    group_layer_widget, image_layer, points_layer
+):
+    """Group layer widget containing a group layer with images/points inside.
+    The group layer (and all items inside of it) are selected. The group is
+    visible, but not all of the items inside are."""
+    group_layers = group_layer_widget.group_layers
+
+    # Add a group layer with an image layer and point layer inside. One is
+    # visible and the other is not
+    group_layers.add_new_item()
+    new_group = group_layers[1]
+
+    image_layer.visible = True
+    points_layer.visible = False
+    new_group.add_new_item(layer_ptr=image_layer)
+    new_group.add_new_item(layer_ptr=points_layer)
+    new_image = new_group[0]
+    new_points = new_group[1]
+
+    # Select them all
+    group_layers.propagate_selection(
+        new_selection=[new_group, new_image, new_points]
+    )
+
+    return group_layer_widget
 
 
 def test_widget_creation(make_napari_viewer) -> None:
@@ -126,3 +157,80 @@ def test_actions_context_menu(
         action.title for action in delegate._group_layer_actions.actions
     ]
     assert context_menu_action_names == group_layer_action_names
+
+
+def test_toggle_visibility_layer_via_context_menu(group_layer_widget):
+    group_layers = group_layer_widget.group_layers
+    group_layer_actions = GroupLayerActions(group_layers)
+
+    assert group_layers[0].layer.visible is True
+    group_layer_actions._toggle_visibility()
+    assert group_layers[0].layer.visible is False
+
+
+def test_toggle_visibility_layer_via_model(group_layer_widget):
+    group_layers = group_layer_widget.group_layers
+    group_layers_view = group_layer_widget.group_layers_view
+    group_layers_model = group_layers_view.model()
+
+    assert group_layers[0].layer.visible is True
+
+    node_index = group_layers_model.index(0, 0)
+    group_layers_model.setData(
+        node_index,
+        Qt.CheckState.Unchecked,
+        role=Qt.ItemDataRole.CheckStateRole,
+    )
+
+    assert group_layers[0].layer.visible is False
+
+
+def test_toggle_visibility_group_layer_via_context_menu(
+    group_layer_widget_with_nested_groups,
+):
+    group_layers = group_layer_widget_with_nested_groups.group_layers
+    group_layer_actions = GroupLayerActions(group_layers)
+
+    # Check starting visibility of group layer and items inside
+    new_group = group_layers[1]
+    new_image = new_group[0]
+    new_points = new_group[1]
+    assert new_group.visible is True
+    assert new_image.layer.visible is True
+    assert new_points.layer.visible is False
+
+    # Toggle visibility and check all become False. As both the image and point
+    # are inside the new_group, the group takes priority.
+    group_layer_actions._toggle_visibility()
+    assert new_group.visible is False
+    assert new_image.layer.visible is False
+    assert new_points.layer.visible is False
+
+
+def test_toggle_visibility_group_layer_via_model(
+    group_layer_widget_with_nested_groups,
+):
+    group_layers = group_layer_widget_with_nested_groups.group_layers
+    group_layers_model = (
+        group_layer_widget_with_nested_groups.group_layers_view.model()
+    )
+
+    # Check starting visibility of group layer and items inside
+    new_group = group_layers[1]
+    new_image = new_group[0]
+    new_points = new_group[1]
+    assert new_group.visible is True
+    assert new_image.layer.visible is True
+    assert new_points.layer.visible is False
+
+    # Toggle visibility and check all become False. As both the image and point
+    # are inside the new_group, the group takes priority.
+    node_index = group_layers_model.nestedIndex(new_group.index_from_root())
+    group_layers_model.setData(
+        node_index,
+        Qt.CheckState.Unchecked,
+        role=Qt.ItemDataRole.CheckStateRole,
+    )
+    assert new_group.visible is False
+    assert new_image.layer.visible is False
+    assert new_points.layer.visible is False
