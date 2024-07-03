@@ -3,8 +3,6 @@ from __future__ import annotations
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-from napari._app_model.context import get_context
-from napari._qt._qapp_model import build_qmodel_menu
 from napari._qt.containers._base_item_model import ItemRole
 from napari._qt.containers._layer_delegate import LayerDelegate
 from napari._qt.containers.qt_layer_model import ThumbnailRole
@@ -12,8 +10,10 @@ from napari._qt.qt_resources import QColoredSVGIcon
 from qtpy.QtCore import QPoint, QSize, Qt
 from qtpy.QtGui import QMouseEvent, QPainter, QPixmap
 
-from napari_experimental.group_layer import GroupLayer
-from napari_experimental.group_layer_actions import GROUP_LAYER_CONTEXT
+from napari_experimental.group_layer_actions import (
+    ContextMenu,
+    GroupLayerActions,
+)
 
 if TYPE_CHECKING:
     from qtpy import QtCore
@@ -110,17 +110,16 @@ class GroupLayerDelegate(LayerDelegate):
         parent: QtGroupLayerView,
     ):
         """Show the group layer context menu.
-        To add a new item to the menu, update the GROUP_LAYER_ACTIONS.
+        To add a new item to the menu, update the GroupLayerActions.
         """
         item = index.data(ItemRole)
 
         # For now, don't show the right click context menu for groups.
         if not item.is_group():
             if not hasattr(self, "_context_menu"):
-                self._context_menu = build_qmodel_menu(
-                    GROUP_LAYER_CONTEXT, parent=parent
+                self._group_layer_actions = GroupLayerActions(model._root)
+                self._context_menu = ContextMenu(
+                    self._group_layer_actions, parent=parent
                 )
 
-            group_layer: GroupLayer = model._root
-            self._context_menu.update_from_context(get_context(group_layer))
             self._context_menu.exec_(pos)

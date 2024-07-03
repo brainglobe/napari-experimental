@@ -4,12 +4,10 @@ import random
 import string
 from typing import Optional
 
-from napari._app_model.context import create_context
 from napari.layers import Layer
 from napari.utils.events import Event
 from napari.utils.tree import Group
 
-from napari_experimental.group_layer_context import GroupLayerContextKeys
 from napari_experimental.group_layer_node import GroupLayerNode
 
 
@@ -66,12 +64,6 @@ class GroupLayer(Group[GroupLayerNode], GroupLayerNode):
             name=random_string(),
             basetype=GroupLayerNode,
         )
-
-        # Match context creation of layerlist init
-        self._ctx = create_context(self)
-        if self._ctx is not None:
-            self._ctx_keys = GroupLayerContextKeys(self._ctx)
-            self.selection.events.changed.connect(self._ctx_keys.update)
 
         # If selection changes on this node, propagate changes to any children
         self.selection.events.changed.connect(self.propagate_selection)

@@ -1,16 +1,14 @@
 """
 """
 
-from typing import TYPE_CHECKING, Optional, Tuple
+from typing import TYPE_CHECKING, Tuple
 
-from napari._app_model import get_app
 from napari.components import LayerList
 from napari.layers import Layer
 from napari.utils.events import Event
 from qtpy.QtWidgets import QPushButton, QVBoxLayout, QWidget
 
 from napari_experimental.group_layer import GroupLayer
-from napari_experimental.group_layer_actions import GROUP_LAYER_ACTIONS
 from napari_experimental.group_layer_controls import (
     QtGroupLayerControlsContainer,
 )
@@ -32,12 +30,6 @@ class GroupLayerWidget(QWidget):
         super().__init__()
 
         self.viewer = viewer
-
-        # Register actions for right click menu
-        get_app().register_actions(GROUP_LAYER_ACTIONS)
-        get_app().injection_store.register(
-            providers=[(self._provide_active_group_layer,)]
-        )
 
         self.group_layers = GroupLayer(*self.global_layers)
         self.group_layers_view = QtGroupLayerView(
@@ -61,11 +53,6 @@ class GroupLayerWidget(QWidget):
         self.layout().addWidget(self.enter_debugger)
         self.layout().addWidget(self.add_group_button)
         self.layout().addWidget(self.group_layers_view)
-
-    def _provide_active_group_layer(self) -> Optional[GroupLayer]:
-        """Provider for active group_layer, in style of
-        _app_model/injection/_providers.py in napari"""
-        return self.group_layers
 
     def _new_layer_group(self) -> None:
         """ """

@@ -33,3 +33,19 @@ def double_click_on_view(qtbot):
         )
 
     return inner_double_click_on_view
+
+
+@pytest.fixture
+def right_click_on_view(qtbot):
+    """Fixture to avoid code repetition to emulate right-click on a view."""
+
+    def inner_right_click_on_view(view, index):
+        viewport_index_position = view.visualRect(index).center()
+
+        qtbot.mouseClick(
+            view.viewport(),
+            Qt.MouseButton.RightButton,
+            pos=viewport_index_position,
+        )
+
+    return inner_right_click_on_view
