@@ -65,7 +65,8 @@ class QtGroupLayerModel(QtNodeTreeModel[GroupLayer]):
                 )
             else:
                 return Qt.CheckState.Checked
-        return None
+
+        return super().data(index, role)
 
     def setData(
         self,
@@ -76,16 +77,17 @@ class QtGroupLayerModel(QtNodeTreeModel[GroupLayer]):
         item = self.getItem(index)
         if role == Qt.ItemDataRole.EditRole:
             item.name = value
-            self.dataChanged.emit(index, index, [role])
-            return True
+            role = Qt.ItemDataRole.DisplayRole
         elif role == Qt.ItemDataRole.CheckStateRole:
             if not item.is_group():
                 item.layer.visible = (
                     Qt.CheckState(value) == Qt.CheckState.Checked
                 )
-            return True
         else:
-            return False
+            return super().setData(index, value, role=role)
+
+        self.dataChanged.emit(index, index, [role])
+        return True
 
 
 class QtGroupLayerView(QtNodeTreeView):

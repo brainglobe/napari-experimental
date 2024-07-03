@@ -89,7 +89,16 @@ class GroupLayerDelegate(LayerDelegate):
         # if the user clicks quickly on the visibility checkbox, we *don't*
         # want it to be interpreted as a double-click. Ignore this event
         if event.type() == QMouseEvent.MouseButtonDblClick:
-            return True
+            self.initStyleOption(option, index)
+            style = option.widget.style()
+            check_rect = style.subElementRect(
+                style.SubElement.SE_ItemViewItemCheckIndicator,
+                option,
+                option.widget,
+            )
+            if check_rect.contains(event.pos()):
+                return True
+
         # refer all other events to LayerDelegate
         return super().editorEvent(event, model, option, index)
 
