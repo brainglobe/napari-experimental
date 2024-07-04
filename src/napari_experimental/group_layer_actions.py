@@ -15,7 +15,13 @@ if TYPE_CHECKING:
 class GroupLayerActions:
     """Class holding all GroupLayerActions to be shown in the right click
     context menu. Based on structure in napari/layers/_layer_actions and
-    napari/app_model/actions/_layerlist_context_actions"""
+    napari/app_model/actions/_layerlist_context_actions
+
+    Parameters
+    ----------
+    group_layers: GroupLayer
+        Group layers to apply actions to
+    """
 
     def __init__(self, group_layers: GroupLayer) -> None:
         self.group_layers = group_layers
@@ -43,10 +49,12 @@ class ContextMenu(QMenu):
 
     Parameters
     ----------
-    group_layer_actions: GroupLayerActions used to populate actions
-        in this menu
-    title: Optional title for the menu
-    parent: Optional parent widget
+    group_layer_actions: GroupLayerActions
+        Group layer actions used to populate actions in this menu
+    title: str, optional
+        Optional title for the menu
+    parent: QWidget, optional
+        Optional parent widget
     """
 
     def __init__(

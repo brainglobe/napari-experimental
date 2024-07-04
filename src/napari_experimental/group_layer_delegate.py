@@ -67,9 +67,6 @@ class GroupLayerDelegate(LayerDelegate):
     ):
         """paint the layer thumbnail - same as in LayerDelegate, but allows
         there to be no thumbnail for group layers"""
-        # paint the thumbnail
-        # MAGICNUMBER: numbers from the margin applied in the stylesheet to
-        # QtLayerTreeView::item
         thumb_rect = option.rect.translated(-2, 2)
         h = index.data(Qt.ItemDataRole.SizeHintRole).height() - 4
         thumb_rect.setWidth(h)
@@ -87,7 +84,7 @@ class GroupLayerDelegate(LayerDelegate):
     ) -> bool:
         """Called when an event has occurred in the editor"""
         # if the user clicks quickly on the visibility checkbox, we *don't*
-        # want it to be interpreted as a double-click. Ignore this event
+        # want it to be interpreted as a double-click. Ignore this event.
         if event.type() == QMouseEvent.MouseButtonDblClick:
             self.initStyleOption(option, index)
             style = option.widget.style()

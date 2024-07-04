@@ -13,8 +13,8 @@ def group_layer_widget(make_napari_viewer, blobs):
     return GroupLayerWidget(viewer)
 
 
-def test_widget_creation(make_napari_viewer) -> None:
-    viewer = make_napari_viewer()
+def test_widget_creation(make_napari_viewer_proxy) -> None:
+    viewer = make_napari_viewer_proxy()
     assert isinstance(GroupLayerWidget(viewer), QWidget)
 
 
