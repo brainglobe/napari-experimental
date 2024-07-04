@@ -7,19 +7,45 @@
 [![codecov](https://codecov.io/gh/alessandrofelder/napari-experimental/branch/main/graph/badge.svg)](https://codecov.io/gh/alessandrofelder/napari-experimental)
 [![napari hub](https://img.shields.io/endpoint?url=https://api.napari-hub.org/shields/napari-experimental)](https://napari-hub.org/plugins/napari-experimental)
 
-A place to experiment with core-independent features without breaking core napari
+## Overview
 
-----------------------------------
+### Features
 
-This [napari] plugin was generated with [Cookiecutter] using [@napari]'s [cookiecutter-napari-plugin] template.
+This plugin allows napari layers to be organised into 'layer groups'. Groups can hold any number of layers, in addition to further sub-groups. This follows suggestions [from the corresponding issue](https://github.com/napari/napari/issues/6345) on the main napari repository.
 
-<!--
-Don't miss the full getting started guide to set up your new package:
-https://github.com/napari/cookiecutter-napari-plugin#getting-started
+Main features:
+- Creation of group layers
+- Drag and drop layers/groups to re-organise them
+- Sync changes in layer order from the plugin to the main napari `LayerList`
+- Toggle visibility of layers and entire groups through the 'eye' icon or right click menu
 
-and review the napari docs for plugin developers:
-https://napari.org/stable/plugins/index.html
--->
+### Ethos
+
+The aim of this plugin is to provide an entirely separate way to interact with layers in napari. While using it, the main `layer list` should only be used to add/remove layers, with all re-ordering,  re-naming etc done directly within the plugin itself.
+
+To aid this, the plugin contains its own independent layer controls, as well as right click menus and other features.
+
+### Outlook
+
+Ultimately, the goal of this plugin is to provide a way to experiment with group layers independent from the main napari codebase. Hopefully, parts of this plugin widget will be incorporated back into napari, replacing the existing `LayerList`.
+
+## Todo
+
+### Desirable features
+
+- Expand right click menu options to include:
+  - Add selected items to new group
+  - Add selected items to existing group
+  - All existing right-click options for layers from the main `LayerList`
+
+- Add independent buttons to add/remove layers to the plugin (this would make it fully independent of the main `LayerList`). Also, style the `Add empty layer group` button to match these.
+
+### Known bugs and issues (non-breaking, but poor UX)
+- The open/closed state of group layers doesn't persist on drag and drop https://github.com/brainglobe/napari-experimental/issues/23
+
+### Known bugs and issues (breaking)
+
+- Seg-fault when adding an empty group to another empty group https://github.com/brainglobe/napari-experimental/issues/12
 
 ## Installation
 
