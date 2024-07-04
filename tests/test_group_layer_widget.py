@@ -44,8 +44,8 @@ def group_layer_widget_with_nested_groups(
     return group_layer_widget
 
 
-def test_widget_creation(make_napari_viewer) -> None:
-    viewer = make_napari_viewer()
+def test_widget_creation(make_napari_viewer_proxy) -> None:
+    viewer = make_napari_viewer_proxy()
     assert isinstance(GroupLayerWidget(viewer), QWidget)
 
 

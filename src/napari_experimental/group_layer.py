@@ -210,8 +210,10 @@ class GroupLayer(Group[GroupLayerNode], GroupLayerNode):
 
         Parameters
         ----------
-        event: selection changed event that triggers this propagation
-        new_selection: List of group layer / group layer node to be selected.
+        event: Event, optional
+            Selection changed event that triggers this propagation
+        new_selection: list[GroupLayer | GroupLayerNode], optional
+            List of group layer / group layer node to be selected.
             If none, it will use the current selection on this node.
         """
         if new_selection is None:
