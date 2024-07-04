@@ -35,8 +35,9 @@ class GroupLayerActions:
         ]
 
     def _toggle_visibility(self):
-        """Toggle the visibility of all selected layers inside the
-        group layers"""
+        """Toggle the visibility of all selected groups and layers. If some
+        selected groups/layers are inside others, then prioritise those
+        highest in the tree."""
 
         # Remove any selected items that are inside other selected groups
         # e.g. if a group is selected and also a layer inside it, toggling the
