@@ -85,6 +85,19 @@ class GroupLayer(Group[GroupLayerNode], GroupLayerNode):
     def name(self, value: str) -> None:
         self._name = value
 
+    @property
+    def visible(self):
+        return self._visible
+
+    @visible.setter
+    def visible(self, value: bool) -> None:
+        for item in self.traverse():
+            if item.is_group():
+                item._visible = value
+            else:
+                item.layer.visible = value
+        self._visible = value
+
     def __init__(
         self,
         *items_to_include: Layer | GroupLayerNode | GroupLayer,
@@ -120,6 +133,9 @@ class GroupLayer(Group[GroupLayerNode], GroupLayerNode):
 
         # If selection changes on this node, propagate changes to any children
         self.selection.events.changed.connect(self.propagate_selection)
+
+        # Default to group being visible
+        self._visible = True
 
     @staticmethod
     def _revise_indices_based_on_previous_moves(

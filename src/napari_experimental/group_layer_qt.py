@@ -75,7 +75,11 @@ class QtGroupLayerModel(QtNodeTreeModel[GroupLayer]):
                     else Qt.CheckState.Unchecked
                 )
             else:
-                return Qt.CheckState.Checked
+                return (
+                    Qt.CheckState.Checked
+                    if item.visible
+                    else Qt.CheckState.Unchecked
+                )
 
         return super().data(index, role)
 
@@ -94,6 +98,17 @@ class QtGroupLayerModel(QtNodeTreeModel[GroupLayer]):
                 item.layer.visible = (
                     Qt.CheckState(value) == Qt.CheckState.Checked
                 )
+            else:
+                item.visible = Qt.CheckState(value) == Qt.CheckState.Checked
+
+                # Changing the visibility of a group will affect all its
+                # children - emit data changed for them too
+                for child_item in item.traverse():
+                    child_index = self.nestedIndex(
+                        child_item.index_from_root()
+                    )
+                    self.dataChanged.emit(child_index, child_index, [role])
+
         else:
             return super().setData(index, value, role=role)
 

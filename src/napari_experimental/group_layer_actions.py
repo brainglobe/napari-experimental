@@ -35,12 +35,32 @@ class GroupLayerActions:
         ]
 
     def _toggle_visibility(self):
-        """Toggle the visibility of all selected layers inside the
-        group layers"""
-        for item in self.group_layers.selection:
+        """Toggle the visibility of all selected groups and layers. If some
+        selected groups/layers are inside others, then prioritise those
+        highest in the tree."""
+
+        # Remove any selected items that are inside other selected groups
+        # e.g. if a group is selected and also a layer inside it, toggling the
+        # visibility will give odd results as toggling the group will toggle
+        # the layer, then toggling the layer will toggle it again. We're
+        # assuming groups higher up the tree have priority.
+        items_to_toggle = self.group_layers.selection.copy()
+        items_to_keep = []
+        for sel_item in self.group_layers.selection:
+            if sel_item.is_group():
+                for item in items_to_toggle:
+                    if item not in sel_item or item == sel_item:
+                        items_to_keep.append(item)
+                items_to_toggle = items_to_keep
+                items_to_keep = []
+
+        # Toggle the visibility of the relevant selection
+        for item in items_to_toggle:
             if not item.is_group():
                 visibility = item.layer.visible
                 item.layer.visible = not visibility
+            else:
+                item.visible = not item.visible
 
 
 class ContextMenu(QMenu):
