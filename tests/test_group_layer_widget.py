@@ -30,13 +30,13 @@ def group_layer_widget_with_nested_groups(
 
     # Add a group layer with an image layer and point layer inside. One is
     # visible and the other is not
-    group_layers.add_new_item()
+    group_layers.add_new_group()
     new_group = group_layers[1]
 
     image_layer.visible = True
     points_layer.visible = False
-    new_group.add_new_item(layer_ptr=image_layer)
-    new_group.add_new_item(layer_ptr=points_layer)
+    group_layers.add_new_layer(layer_ptr=image_layer, location=(1, 0))
+    group_layers.add_new_layer(layer_ptr=points_layer, location=(1, 1))
     new_image = new_group[0]
     new_points = new_group[1]
 
