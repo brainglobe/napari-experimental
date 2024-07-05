@@ -85,7 +85,7 @@ By contrast, GL uses `NestedIndex`es to track the position of GLNs; these are tu
 - (0, 1) refers to the item at index 1 of the (sub)-GL at index 0 of the root GL.
 - (2,) refers to the item at index 2 of the root GL.
 
-Note that an "item" can be a GLN or a GL (use the `is_group` method to distinguish necessary)!
+Note that an "item" can be a GLN or a GL (use the `is_group` method to distinguish if necessary)!
 Again, items are added to a GL using the lowest available index.
 GLs can also assign a flat index order to their elements by starting from the root tree and counting upwards from 0, descending into sub-GLs and exhausting their items when they are encountered (see `GroupLayer.flat_index_order`).
 
