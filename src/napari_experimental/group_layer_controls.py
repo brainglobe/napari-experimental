@@ -106,8 +106,6 @@ class QtGroupLayerControlsContainer(QtLayerControlsContainer):
         """
         if item.is_group():
             controls = QtGroupLayerControls()
-            # Need to also react to changes of selection in nested group layers
-            item.selection.events.active.connect(self._display)
         else:
             layer = item.layer
             controls = create_qt_layer_controls(layer)
