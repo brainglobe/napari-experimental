@@ -1,10 +1,10 @@
 from __future__ import annotations
 
-import logging
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 from napari._qt.containers import QtNodeTreeModel, QtNodeTreeView
+from napari._qt.containers.qt_layer_model import ThumbnailRole
 from napari._qt.qt_resources import get_current_stylesheet
 from qtpy.QtCore import QModelIndex, QSize, Qt
 from qtpy.QtGui import QDropEvent, QImage
@@ -14,10 +14,6 @@ from napari_experimental.group_layer_delegate import GroupLayerDelegate
 
 if TYPE_CHECKING:
     from qtpy.QtWidgets import QWidget
-
-
-logger = logging.getLogger(__name__)
-ThumbnailRole = Qt.UserRole + 2
 
 
 class QtGroupLayerModel(QtNodeTreeModel[GroupLayer]):
