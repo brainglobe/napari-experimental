@@ -2,13 +2,15 @@ from __future__ import annotations
 
 import random
 import string
-from typing import Iterable, List, Literal, Optional
+from collections import defaultdict
+from typing import Dict, Iterable, List, Literal, Optional
 
 from napari.layers import Layer
 from napari.utils.events.containers._nested_list import (
     NestedIndex,
     split_nested_index,
 )
+from napari.utils.translations import trans
 from napari.utils.tree import Group
 
 from napari_experimental.group_layer_node import GroupLayerNode
@@ -115,6 +117,65 @@ class GroupLayer(Group[GroupLayerNode], GroupLayerNode):
             basetype=GroupLayerNode,
         )
 
+    @staticmethod
+    def _revise_indices_based_on_previous_moves(
+        original_index: NestedIndex,
+        original_dest: NestedIndex,
+        previous_moves: Dict[NestedIndex, List[int]],
+    ) -> NestedIndex:
+        """
+        Intended for use during the multi_move process.
+        Given an index referencing a position in the tree prior to the
+        start of a multi-move, return the new index of the original
+        object that was referenced.
+
+        Parameters
+        ----------
+        original_index : NestedIndex
+            The original index of the item in the tree.
+        original_dest : NestedIndex
+            The original destination index of the item.
+        previous_moves : Dict[NestedIndex, List[int]]
+            A dictionary whose keys are indices of groups that have had items
+            moved prior to this one, and whose values are the indices in that
+            group which were moved. All indices (for Groups and Nodes) should
+            use the original indexing convention (prior to the application of
+            any moves).
+        """
+        moves_prior_to_this_one = sum(
+            len(list_of_indices) for list_of_indices in previous_moves.values()
+        )
+        revised_index = list(original_index)
+        for ii in range(len(revised_index)):
+            examining = original_index[: ii + 1]
+            nested_group_ind, nested_ind = split_nested_index(examining)
+            old_position_in_this_group = nested_ind
+
+            if nested_group_ind in previous_moves:
+                # Every move that took out an item above this one will decrease
+                # the effective index by 1
+                nested_ind -= sum(
+                    1
+                    for index in previous_moves[nested_group_ind]
+                    if index < old_position_in_this_group
+                )
+            # If this item lives in the same group as the destination index,
+            # and it is BELOW or AT the destination index, it will now have
+            # moved down a number of indices equal to the number of previous
+            # moves.
+            orig_dest_group_ind, orig_dest_ind = split_nested_index(
+                original_dest
+            )
+            if (
+                nested_group_ind == orig_dest_group_ind
+                and old_position_in_this_group >= orig_dest_ind
+            ):
+                nested_ind += moves_prior_to_this_one
+
+            # Update this part of the group index with its new position
+            revised_index[ii] = nested_ind
+        return tuple(revised_index)
+
     def _add_new_item(
         self,
         item_type: Literal["Node", "Group"],
@@ -179,6 +240,91 @@ class GroupLayer(Group[GroupLayerNode], GroupLayerNode):
             if group_items is None:
                 group_items = ()
             insertion_group.insert(insertion_index, GroupLayer(*group_items))
+
+    def _move_plan(
+        self, sources: Iterable[NestedIndex], dest_index: NestedIndex
+    ):
+        """Prepare indices for a multi-move.
+
+        Given a set of ``sources`` from anywhere in the list,
+        and a single ``dest_index``, this function computes and yields
+        ``(from_index, to_index)`` tuples that can be used sequentially in
+        single move operations.  It keeps track of what has moved where and
+        updates the source and destination indices to reflect the model at each
+        point in the process.
+
+        This is useful for a drag-drop operation with a QtModel/View.
+
+        Parameters
+        ----------
+        sources : Iterable[NestedIndex]
+            An iterable of NestedIndex that should be moved to ``dest_index``.
+        dest_index : Tuple[int]
+            The destination for sources.
+        """
+        if isinstance(dest_index, slice):
+            raise TypeError(
+                trans._(
+                    "Destination index may not be a slice",
+                    deferred=True,
+                )
+            )
+
+        to_move: List[NestedIndex] = []
+        for idx in sources:
+            if isinstance(idx, tuple):
+                to_move.append(idx)
+            elif isinstance(idx, int):
+                to_move.append((idx,))
+            elif isinstance(idx, slice):
+                raise NotImplementedError(
+                    "Slices should not be sent to a "
+                    "GroupLayer when multi-moving"
+                )
+                to_move.extend(list(range(*idx.indices(len(self)))))
+            else:
+                raise TypeError(
+                    trans._(
+                        "Can only move NestedIndices indices and ints which "
+                        "can be cast to NestedIndices, not {t}",
+                        deferred=True,
+                        t=type(idx),
+                    )
+                )
+
+        # (Relative) flat index order must be preserved when moving multiple
+        # items, so sort the order of the sources here to ensure consistency.
+        flat_order = self.flat_index_order(include_groups=True)
+        to_move = sorted(to_move, key=lambda x: flat_order.index(x))
+
+        dest_group_ind, dest_ind = split_nested_index(dest_index)
+        dest_group = self[dest_group_ind]
+        assert dest_group.is_group()
+        if dest_ind < 0:
+            dest_ind += len(dest_group) + 1
+            dest_index = dest_group_ind + (dest_ind,)
+        # dest_group_ind + (dest_ind,) is now the target insertion point for
+        # the first item.
+
+        previous_moves = defaultdict(list)
+        for src in to_move:
+            revised_source = self._revise_indices_based_on_previous_moves(
+                original_index=src,
+                original_dest=dest_index,
+                previous_moves=previous_moves,
+            )
+            revised_dest = self._revise_indices_based_on_previous_moves(
+                original_index=dest_index,
+                original_dest=dest_index,
+                previous_moves=previous_moves,
+            )
+            yield revised_source, revised_dest
+
+            # Record that a move occurred in the source group.
+            # Note that the sum of the lengths of the values of this
+            # dict is equal to the number of moves in the multi-move
+            # we have done so far.
+            previous_moves[src[:-1]].append(src[-1])
 
     def _node_name(self) -> str:
         """Will be used when rendering node tree as string."""
@@ -247,7 +393,9 @@ class GroupLayer(Group[GroupLayerNode], GroupLayerNode):
                     return True
         return False
 
-    def flat_index_order(self) -> List[NestedIndex]:
+    def flat_index_order(
+        self, include_groups: bool = False
+    ) -> List[NestedIndex]:
         """
         Return a list of NestedIndex-es, whose order corresponds to
         the flat order of the Nodes in the tree.
@@ -258,16 +406,22 @@ class GroupLayer(Group[GroupLayerNode], GroupLayerNode):
 
         An example is given in the tree below:
 
-        Tree                Flat Index
-        - Node_0            0
-        - Node_1            1
-        - Group_A           n/a
-            - Node_A0       3
-            - Node_A1       4
-            - Group_AA      n/a
-                - Node_AA0  5
-            - Node_A2       6
-        - Node_2            7
+        Tree                Flat Index  include_groups
+        - Node_0            0           0
+        - Node_1            1           1
+        - Group_A           n/a         2
+            - Node_A0       2           3
+            - Node_A1       3           4
+            - Group_AA      n/a         5
+                - Node_AA0  4           6
+            - Node_A2       5           7
+        - Node_2            6           8
+
+        Parameters
+        ----------
+        include_groups : bool, default = False
+            Whether to assign groups their own place in the order,
+            or to skip over them.
         """
         order: List[NestedIndex] = []
         for item in self:
@@ -275,7 +429,9 @@ class GroupLayer(Group[GroupLayerNode], GroupLayerNode):
                 # This is a group, descend into it and append
                 # its ordering to our current ordering
                 item: GroupLayer
-                order += item.flat_index_order()
+                if include_groups:
+                    order.append(item.index_from_root())
+                order += item.flat_index_order(include_groups=include_groups)
             else:
                 # This is just a node, and it is the next one in
                 # the order

@@ -1,4 +1,4 @@
-from typing import Callable, Dict
+from typing import Callable, Dict, Iterable, List, Tuple
 
 import pytest
 from napari.layers import Points
@@ -90,31 +90,50 @@ def test_check_is_already_tracking(
     )
 
 
-def test_flat_index(nested_layer_group: GroupLayer) -> None:
-    """
-    - Points_0
-    - Group_A
-      - Points_A0
-      - Group_AA
-        - Points_AA0
-        - Points_AA1
-      - Points_A1
-    - Points_1
-    - Group_B
-      - Points_B0
-    """
-    flat_order = nested_layer_group.flat_index_order()
-    expected_flat_order = [
-        (0,),  # Points_0
-        (1, 0),  # Points_A0
-        (1, 1, 0),  # Points_AA0
-        (1, 1, 1),  # Points_AA1
-        (1, 2),  # Points_A1
-        (2,),  # Points_1
-        (3, 0),  # Points_B0
-    ]
+@pytest.mark.parametrize(
+    ["with_groups", "expected_order"],
+    [
+        pytest.param(
+            False,
+            [
+                (0,),  # Points_0
+                (1, 0),  # Points_A0
+                (1, 1, 0),  # Points_AA0
+                (1, 1, 1),  # Points_AA1
+                (1, 2),  # Points_A1
+                (2,),  # Points_1
+                (3, 0),  # Points_B0
+            ],
+            id="without Groups",
+        ),
+        pytest.param(
+            True,
+            [
+                (0,),  # Points_0
+                (1,),  # Group_A
+                (1, 0),  # Points_A0
+                (1, 1),  # Group_AA
+                (1, 1, 0),  # Points_AA0
+                (1, 1, 1),  # Points_AA1
+                (1, 2),  # Points_A1
+                (2,),  # Points_1
+                (3,),  # Group_B
+                (3, 0),  # Points_B0
+            ],
+            id="Including Groups",
+        ),
+    ],
+)
+def test_flat_index(
+    nested_layer_group: GroupLayer,
+    with_groups: bool,
+    expected_order: List[NestedIndex],
+) -> None:
+    flat_order = nested_layer_group.flat_index_order(
+        include_groups=with_groups
+    )
     for i, returned_nested_index in enumerate(flat_order):
-        expected_nested_index = expected_flat_order[i]
+        expected_nested_index = expected_order[i]
         assert expected_nested_index == returned_nested_index, (
             f"Mismatch at position {i}: "
             f"got {returned_nested_index} but expected {expected_nested_index}"
@@ -192,3 +211,118 @@ def test_add_group(
     assert (
         len(added_group) == 2
     ), "Additional items added to the Group upon creation."
+
+
+@pytest.mark.parametrize(
+    [
+        "o_index",
+        "d_index",
+        "previous_moves",
+        "expected_index",
+    ],
+    [
+        pytest.param((0,), (2,), {}, (0,), id="No previous interference"),
+        pytest.param(
+            (2,),
+            (0,),
+            {(): [1]},
+            (2,),
+            id="1 previous move, but it was from a position above "
+            "the original to a position above the original",
+        ),
+        pytest.param(
+            (2,),
+            (0,),
+            {(1,): [0]},
+            (3,),
+            id="1 previous move, from another group to a position above.",
+        ),
+        pytest.param(
+            (2,),
+            (3,),
+            {(1,): [0]},
+            (2,),
+            id="1 previous move, to a position below the original.",
+        ),
+        pytest.param(
+            (2,),
+            (1, 2),
+            {(): [0, 4]},
+            (1,),
+            id="2 previous moves, only 1 of which conflicts",
+        ),
+        pytest.param(
+            (1, 2, 1),
+            (1, 3, 0),
+            {(): [0], (1,): [0, 4], (1, 2): [0]},
+            (0, 1, 0),
+            id="Group indices affected by moves",
+        ),
+    ],
+)
+def test_revise_indicies(
+    o_index: List[NestedIndex],
+    d_index: NestedIndex,
+    previous_moves: Dict[NestedIndex, List[int]],
+    expected_index: NestedIndex,
+) -> None:
+    computed_index = GroupLayer._revise_indices_based_on_previous_moves(
+        original_index=o_index,
+        original_dest=d_index,
+        previous_moves=previous_moves,
+    )
+    assert computed_index == expected_index, (
+        "Did not provide correct expected index, "
+        f"got {computed_index} but expected {expected_index}"
+    )
+
+
+@pytest.mark.parametrize(
+    ["sources", "destination", "expected_plan"],
+    [
+        pytest.param(
+            ((0,), (1,)),
+            (2,),
+            [((0,), (2,)), ((0,), (2,))],
+            id="Effectively doing nothing: (0,) + (1,) -> (2,)",
+            # (0,) moves to (2,) without problems.
+            # (1,) is now index (0,);
+            #   -1 for the previous move taking an element from ABOVE this one,
+            # The destination is (2,);
+            #   +1:  being the 2nd move in the list,
+            #   -1: previous move taking an element from ABOVE this one,
+        ),
+        pytest.param(
+            ((0,), (1, 0)),
+            (-1,),
+            [((0,), (4,)), ((0, 0), (4,))],
+            id="Move two items from different subgroups to the end.",
+        ),
+    ],
+)
+def test_move_plan(
+    nested_layer_group: GroupLayer,
+    sources: Iterable[NestedIndex],
+    destination: NestedIndex,
+    expected_plan: List[Tuple[NestedIndex, NestedIndex]],
+) -> None:
+    generated_pairs = list(
+        nested_layer_group._move_plan(sources=sources, dest_index=destination)
+    )
+    assert len(generated_pairs) == len(
+        expected_plan
+    ), "Plan and expected plan do not have the same number of elements"
+
+    # Could do a direct comparison of lists,
+    # but provide more granular detail here
+    for i, g_pair in enumerate(generated_pairs):
+        e_pair = expected_plan[i]
+        for ii, type in enumerate(["source", "destination"]):
+            assert g_pair[ii] == e_pair[ii], (
+                f"Move {i} {type}s do not agree: "
+                f"expected {type} at {e_pair[ii]} "
+                f"but was informed it was at {g_pair[ii]}"
+            )
+
+    # Run the move just to see if errors are then thrown up
+    nested_layer_group.move_multiple(sources, destination)
