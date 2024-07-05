@@ -21,6 +21,17 @@ ThumbnailRole = Qt.UserRole + 2
 
 
 class QtGroupLayerModel(QtNodeTreeModel[GroupLayer]):
+    """
+    A QTreeModel that works with the GroupLayer tree structure.
+    See `napari._qt.containers.QtNodeTreeModel` for more information.
+
+    Parameters
+    ----------
+    root : GroupLayer
+        The root object from which to form the model.
+    parent : QWidget, optional
+        Parent QObject for the instance.
+    """
 
     def __init__(self, root: GroupLayer, parent: QWidget = None):
         super().__init__(root, parent)
@@ -106,6 +117,18 @@ class QtGroupLayerModel(QtNodeTreeModel[GroupLayer]):
 
 
 class QtGroupLayerView(QtNodeTreeView):
+    """
+    A QTreeView that works with the QtGroupLayerModel model.
+    See `napari._qt.containers.QtNodeTreeView` for more information.
+
+    Parameters
+    ----------
+    root : GroupLayer
+        The root object from which to form the model.
+    parent : QWidget, optional
+        Parent QObject for the instance.
+    """
+
     _root: GroupLayer
     model_class = QtGroupLayerModel
 
