@@ -277,12 +277,16 @@ class GroupLayer(Group[GroupLayerNode], GroupLayerNode):
             elif isinstance(idx, int):
                 to_move.append((idx,))
             elif isinstance(idx, slice):
+                raise NotImplementedError(
+                    "Slices should not be sent to a "
+                    "GroupLayer when multi-moving"
+                )
                 to_move.extend(list(range(*idx.indices(len(self)))))
-                raise NotImplementedError("Should never hit this case?")
             else:
                 raise TypeError(
                     trans._(
-                        "Can only move integer or slice indices, not {t}",
+                        "Can only move NestedIndices indices and ints which "
+                        "can be cast to NestedIndices, not {t}",
                         deferred=True,
                         t=type(idx),
                     )
@@ -320,7 +324,6 @@ class GroupLayer(Group[GroupLayerNode], GroupLayerNode):
             # Note that the sum of the lengths of the values of this
             # dict is equal to the number of moves in the multi-move
             # we have done so far.
-            # previous_moves[src[:-1]].append(revised_source[-1])
             previous_moves[src[:-1]].append(src[-1])
 
     def _node_name(self) -> str:

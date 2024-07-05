@@ -324,5 +324,5 @@ def test_move_plan(
                 f"but was informed it was at {g_pair[ii]}"
             )
 
+    # Run the move just to see if errors are then thrown up
     nested_layer_group.move_multiple(sources, destination)
-    pass
