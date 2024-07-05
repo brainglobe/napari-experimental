@@ -39,6 +39,14 @@ To aid this, the plugin contains its own independent layer controls, as well as 
 Ultimately, the goal of this plugin is to provide a way to experiment with group layers independent from the main napari codebase.
 Hopefully, parts of this plugin widget will be incorporated back into napari, replacing the existing `LayerList`.
 
+## Implementation Details
+
+This section is a halfway point between full developer documentation and throwing docstrings in a contributor's face.
+We have been diligent in adding docstrings to our methods, however we recommend you first read about [model/view programming](https://doc.qt.io/qt-6/model-view-programming.html) and in particular tree models and views.
+The docstrings, plus the explanations in this section, should then afford you enough information into how the plugin is operating.
+
+### Key Classes
+
 ## Todo
 
 ### Desirable features
@@ -56,6 +64,12 @@ Hopefully, parts of this plugin widget will be incorporated back into napari, re
 ### Known bugs and issues (breaking)
 
 - Seg-fault when adding an empty group to another empty group <https://github.com/brainglobe/napari-experimental/issues/12>
+
+### Development Tasks
+
+- Create a standalone docs site that expands on the implementation details section.
+  - Remove said section and transfer its contents to the docs site
+  - Link to the docs site in the README.
 
 ## Installation
 
