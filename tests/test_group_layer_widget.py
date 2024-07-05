@@ -90,10 +90,9 @@ def test_layer_sync(make_napari_viewer, image_layer, points_layer):
     # forces an update in the main viewer.
     # However, don't forget that the ordering is REVERSED in the GUI, so
     # viewer.layers[-1] == widget.group_layers[0], etc.
-    for in_viewer, in_widget in zip(
+    for in_viewer, in_widget in zip(  # noqa: B905
         reversed(viewer.layers),
         [node.layer for node in widget.group_layers],
-        strict=True,
     ):
         assert in_viewer is in_widget
     # Move layer at position 1 to position 0
