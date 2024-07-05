@@ -10,7 +10,11 @@ from qtpy.QtWidgets import QWidget
 def group_layer_widget(make_napari_viewer, blobs):
     viewer = make_napari_viewer()
     viewer.add_image(blobs)
-    return GroupLayerWidget(viewer)
+
+    _, plugin_widget = viewer.window.add_plugin_dock_widget(
+        "napari-experimental", "Show Grouped Layers"
+    )
+    return plugin_widget
 
 
 def test_widget_creation(make_napari_viewer_proxy) -> None:
