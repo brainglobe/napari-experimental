@@ -6,6 +6,7 @@ from collections import defaultdict
 from typing import Dict, Iterable, List, Literal, Optional
 
 from napari.layers import Layer
+from napari.utils.events import Event
 from napari.utils.events.containers._nested_list import (
     NestedIndex,
     split_nested_index,
@@ -84,6 +85,19 @@ class GroupLayer(Group[GroupLayerNode], GroupLayerNode):
     def name(self, value: str) -> None:
         self._name = value
 
+    @property
+    def visible(self):
+        return self._visible
+
+    @visible.setter
+    def visible(self, value: bool) -> None:
+        for item in self.traverse():
+            if item.is_group():
+                item._visible = value
+            else:
+                item.layer.visible = value
+        self._visible = value
+
     def __init__(
         self,
         *items_to_include: Layer | GroupLayerNode | GroupLayer,
@@ -116,6 +130,12 @@ class GroupLayer(Group[GroupLayerNode], GroupLayerNode):
             name=random_string(),
             basetype=GroupLayerNode,
         )
+
+        # If selection changes on this node, propagate changes to any children
+        self.selection.events.changed.connect(self.propagate_selection)
+
+        # Default to group being visible
+        self._visible = True
 
     @staticmethod
     def _revise_indices_based_on_previous_moves(
@@ -479,3 +499,39 @@ class GroupLayer(Group[GroupLayerNode], GroupLayerNode):
                     self.remove(node)
             elif node.layer is layer_ptr:
                 self.remove(node)
+
+    def propagate_selection(
+        self,
+        event: Optional[Event] = None,
+        new_selection: Optional[list[GroupLayer | GroupLayerNode]] = None,
+    ) -> None:
+        """
+        Propagate selection from this node to all its children. This is
+        necessary to keep the .selection consistent at all levels in the tree.
+
+        This prevents scenarios where e.g. a tree like
+        Root
+        - Points_0
+          - Group_A
+          - Points_A0
+        could have Points_A0 selected on Root (appearing in its .selection),
+        but not on Group_A (not appearing in its .selection)
+
+        Parameters
+        ----------
+        event: Event, optional
+            Selection changed event that triggers this propagation
+        new_selection: list[GroupLayer | GroupLayerNode], optional
+            List of group layer / group layer node to be selected.
+            If none, it will use the current selection on this node.
+        """
+        if new_selection is None:
+            new_selection = self.selection
+
+        self.selection.intersection_update(new_selection)
+        self.selection.update(new_selection)
+
+        for g in [group for group in self if group.is_group()]:
+            # filter for things in this group
+            relevent_selection = [node for node in new_selection if node in g]
+            g.propagate_selection(event=None, new_selection=relevent_selection)
