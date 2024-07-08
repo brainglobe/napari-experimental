@@ -108,8 +108,6 @@ In order to preserve the user's intuitive understanding of "layers higher up in 
 
 ### Known bugs and issues (breaking)
 
-- Seg-fault when adding an empty group to another empty group <https://github.com/brainglobe/napari-experimental/issues/12>
-
 ### Development Tasks
 
 - Create a standalone docs site that expands on the implementation details section.
