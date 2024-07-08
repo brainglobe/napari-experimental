@@ -74,6 +74,9 @@ class GroupLayer(Group[GroupLayerNode], GroupLayerNode):
         are any such Nodes).
     """
 
+    __next_uid: int = -1
+    _uid: int
+
     @property
     def name(self) -> str:
         """
@@ -98,10 +101,33 @@ class GroupLayer(Group[GroupLayerNode], GroupLayerNode):
                 item.layer.visible = value
         self._visible = value
 
+    @property
+    def uid(self) -> int:
+        """
+        Unique ID of this instance of GroupLayer.
+        Assigned on instantiation and cannot be overwritten.
+        """
+        return self._uid
+
+    def __eq__(self, other: GroupLayer) -> bool:
+        """
+        GroupLayers are only equal if we are pointing to the same object.
+        """
+        return isinstance(other, GroupLayer) and self.uid == other.uid
+
+    def __hash__(self) -> int:
+        """
+        Since GroupLayers are assigned a unique ID on creation, we can use
+        this value as the hash of a particular instance.
+        """
+        return self._uid
+
     def __init__(
         self,
         *items_to_include: Layer | GroupLayerNode | GroupLayer,
     ):
+        # Assign me a unique uid
+        self._uid = GroupLayer._next_uid()
         # Python seems to understand that since GroupLayerNode inherits from
         # Node, and Group also inherits from Node, that GroupLayerNode
         # "wins".
@@ -136,6 +162,15 @@ class GroupLayer(Group[GroupLayerNode], GroupLayerNode):
 
         # Default to group being visible
         self._visible = True
+
+    @classmethod
+    def _next_uid(cls) -> int:
+        """
+        Return the next free unique ID that can be assigned to an instance of
+        this class, then increment the counter to the next available index.
+        """
+        cls.__next_uid += 1
+        return cls.__next_uid
 
     @staticmethod
     def _revise_indices_based_on_previous_moves(
@@ -457,59 +492,6 @@ class GroupLayer(Group[GroupLayerNode], GroupLayerNode):
                 # the order
                 order.append(item.index_from_root())
         return order
-
-    def index(
-        self,
-        value: GroupLayerNode,
-        start: int = 0,
-        stop: int = None,
-    ) -> int:
-        """
-        Note this is identical to the parent method, save for the comparison
-        operation that returns the index. CF
-
-        ```
-        v = convert(self[i])
-        if v is value:
-        ```
-
-        vs in the parent class
-
-        ```
-        v = convert(self[i])
-        if v is value or v == value:
-        ```
-
-        This is because Group comparison inherits from _typed, which compares
-        the ._list items in a Group. This causes empty GroupLayers to be
-        identical, resulting in recursion loops and seg-faults when cleaning.
-
-        By contrast, implementing the __eq__ method means this class isn't
-        hashable any more. Attempting to implement both __hash__ and __eq__ is
-        not simple either (since GroupLayers are inherently mutable)! As such,
-        it is easiest to fall back to memory comparison, since we know that
-        distinct GroupLayers will occupy different places in memory, and should
-        only ever store pointers to other objects and not copies themselves.
-        """
-        if start is not None and start < 0:
-            start = max(len(self) + start, 0)
-        if stop is not None and stop < 0:
-            stop += len(self)
-
-        convert = self._lookup.get(type(value), lambda x: x)
-
-        for i in self._iter_indices(start, stop):
-            v = convert(self[i])
-            if v is value:
-                return i
-
-        raise ValueError(
-            trans._(
-                "{value!r} is not in list",
-                deferred=True,
-                value=value,
-            )
-        )
 
     def is_group(self) -> bool:
         """
