@@ -36,6 +36,18 @@ GLs can also assign a flat index order to their elements by starting from the ro
 However GLs render with index 0 _at the top_ of the view, and higher indices below them.
 In order to preserve the user's intuitive understanding of "layers higher up in the display appear on top of lower layers", it is thus necessary to pass the _reversed_ order of layers back to the viewer after a rearrangement event in the GL viewer.
 
+## Hashing and Equality
+
+`GroupLayer`s need to be hashable due to how the `QtGroupLayerControlsContainer` stores the references between a `GroupLayer` and its controls; which is a dictionary of `GroupLayer` keys to `GroupLayerControls` values.
+However, `GroupLayer`s also need to be able to check for equality with other `GroupLayer` instances.
+Since `GroupLayer`s attributes are inherently mutable, this presents some problems.
+
+The solution is that `GroupLayer` instances are assigned a unique integer ID (from 0 upwards) when they are created, and this value serves as the `__hash__` value of the instance.
+Equality between `GroupLayer`s then checks that the IDs of the two (pointers to) instances are identical.
+This is a safe property to use as the hash value since it fulfils all necessary requirements for a hash, however does lead to the rather odd behaviour that no two instances of `GroupLayer` will be "equal".
+This in itself is a (semi-)desirable situation for us though: even if two `GroupLayer`s contain the same nested structure, name, etc, this does not mean they are identical in terms of how the user has decided to organise them within the tree structure.
+However, care should be taken when comparing for identical `GroupLayer` instances - if you want to check equality of `GroupLayer` attributes, you will need to explicitly check these via `GroupLayer1.<attribute> == GroupLayer2.<attribute>`.
+
 ## API Reference
 
 ### `GroupLayerNode`
