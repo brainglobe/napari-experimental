@@ -26,16 +26,16 @@ def random_string(str_length: int = 5) -> str:
 class GroupLayer(Group[GroupLayerNode], GroupLayerNode):
     """
     A Group item for a tree-like data structure whose nodes have a dedicated
-    attribute for tracking a single Layer. See `napari.utils.tree` for more
+    attribute for tracking a single Layer. See ``napari.utils.tree`` for more
     information about Nodes and Groups.
 
     GroupLayers are the "complex" component of the Tree structure that is used
     to organise Layers into Groups. A GroupLayer contains GroupLayerNodes and
     other GroupLayers (which are, in particular, a subclass of GroupLayerNode).
     By convention, GroupLayers themselves do not track individual Layers, and
-    hence their `.layer` property is always set to `None`. Contrastingly, their
-    `.is_group()` method always returns `True` compared to a `GroupLayerNode`'s
-    method returning `False`.
+    hence their ``.layer`` property is always set to ``None``. Contrastingly,
+    their ``.is_group()`` method always returns ``True`` compared to a
+    GroupLayerNode's method returning ``False``.
 
     Since the Nodes in the tree map 1:1 with the Layers, the docstrings and
     comments within this class often use the words interchangeably. This may
@@ -53,25 +53,6 @@ class GroupLayer(Group[GroupLayerNode], GroupLayerNode):
         Group when it is instantiated. Layers will have a Node created to
         track them, GroupLayerNodes will simply be added to the GroupLayer,
         as will other GroupLayers.
-
-    Attributes
-    ----------
-    name
-
-    Methods
-    -------
-    add_new_layer
-        Add a new (GroupLayerNode tracking a) Layer to the GroupLayer.
-    add_new_group
-        Add a new GroupLayer inside this GroupLayer.
-    check_already_tracking
-        Check if a Layer is already tracked within the tree.
-    flat_index_order
-        Return a list of the tracked Layers, in the order of their occurrence
-        in the tree.
-    remove_layer_item
-        Remove any Nodes that track the Layer provided from the tree (if there
-        are any such Nodes).
     """
 
     __next_uid: int = -1
@@ -459,18 +440,33 @@ class GroupLayer(Group[GroupLayerNode], GroupLayerNode):
         tree, and descends down into the tree, exhausting branches it
         encounters before continuing.
 
-        An example is given in the tree below:
+        For the tree below;
 
-        Tree                Flat Index  include_groups
-        - Node_0            0           0
-        - Node_1            1           1
-        - Group_A           n/a         2
-            - Node_A0       2           3
-            - Node_A1       3           4
-            - Group_AA      n/a         5
-                - Node_AA0  4           6
-            - Node_A2       5           7
-        - Node_2            6           8
+        * Node_0
+        * Node_1
+        * Group_A
+            * Node_A0
+            * Node_A1
+            * Group_AA
+                * Node_AA0
+            * Node_A2
+        * Node_2
+
+        we have the following flat order and corresponding indices:
+
+        ========  ==========  ==================
+        Item      Flat Index  ``include_groups``
+        ========  ==========  ==================
+        Node_0    0           0
+        Node_1    1           1
+        Group_A   n/a         2
+        Node_A0   2           3
+        Node_A1   3           4
+        Group_AA  n/a         5
+        Node_AA0  4           6
+        Node_A2   5           7
+        Node_2    6           8
+        ========  ==========  ==================
 
         Parameters
         ----------
@@ -545,12 +541,15 @@ class GroupLayer(Group[GroupLayerNode], GroupLayerNode):
         necessary to keep the .selection consistent at all levels in the tree.
 
         This prevents scenarios where e.g. a tree like
-        Root
-        - Points_0
-          - Group_A
-          - Points_A0
-        could have Points_A0 selected on Root (appearing in its .selection),
-        but not on Group_A (not appearing in its .selection)
+
+        * ``Root``
+            * ``Points_0``
+                * ``Group_A``
+                * ``Points_A0``
+
+        could have ``Points_A0`` selected on ``Root`` (appearing in its
+        ``.selection``), but not on ``Group_A`` (not appearing in its
+        ``.selection``).
 
         Parameters
         ----------

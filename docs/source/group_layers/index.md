@@ -11,6 +11,14 @@ Main features:
 - Sync changes in layer order from the plugin to the main napari `LayerList`
 - Toggle visibility of layers and entire groups through the 'eye' icon or right click menu
 
+```{toctree}
+---
+maxdepth: 1
+caption: More information about this plugin:
+---
+implementation
+```
+
 ## Ethos and Outlook
 
 The aim of this plugin is to provide an entirely separate way to interact with layers in napari.
