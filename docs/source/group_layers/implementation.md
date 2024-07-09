@@ -35,4 +35,5 @@ maxdepth: 1
 ---
 
 classes/group_layer_and_nodes
+classes/widget
 ```
