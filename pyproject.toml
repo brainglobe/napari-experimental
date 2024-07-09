@@ -27,7 +27,6 @@ napari-experimental = "napari_experimental:napari.yaml"
 
 [project.optional-dependencies]
 dev = [
-    "myst_parser",
     "sphinx",
     "tox",
     "pytest",
