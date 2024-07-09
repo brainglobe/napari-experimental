@@ -19,6 +19,26 @@ maxdepth: 1
 group_layers/index
 ```
 
+## Installation
+
+You can install `napari-experimental` via [pip](https://pypi.org/project/pip/):
+
+```bash
+pip install napari-experimental
+```
+
+Or to install the latest development version:
+
+```bash
+pip install git+https://github.com/brainglobe/napari-experimental.git
+```
+
+You can also install a version of the package that uses the latest version of napari (fetched from <https://github.com/napari/napari>):
+
+```bash
+pip install napari-experimental[napari-latest]
+```
+
 ## Building the Documentation
 
 You can build the documentation locally by (in your desired Python environment);
@@ -33,8 +53,15 @@ When a new version is released (tag on `main`) or a push to `main` occurs with c
 
 ## Contributing
 
+You can report bugs and request features by [raising an issue](https://github.com/brainglobe/napari-experimental/issues/23) on the GitHub repository - we have a few templates to help you fill out an issue if you haven't done so before.
+
 We follow the same [contribution guidelines](https://napari.org/stable/developers/index.html) as the napari project.
 Contributions are welcome to any of the plugins via pull request, and will be subject to review from appropriate maintainers.
+Tests can be run with [tox](https://tox.readthedocs.io/en/latest/), please ensure the coverage at least stays the same before you submit a pull request.
+
+## License
+
+Distributed under the terms of the [BSD-3] license, "napari-experimental" is free and open source software
 
 ## Indices and Tables
 
