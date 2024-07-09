@@ -11,4 +11,5 @@ recursive-include src *.svg
 
 
 prune .napari-hub
+prune docs
 prune tests
