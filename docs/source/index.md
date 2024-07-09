@@ -53,7 +53,7 @@ When a new version is released (tag on `main`) or a push to `main` occurs with c
 
 ## Contributing
 
-You can report bugs and request features by [raising an issue](https://github.com/brainglobe/napari-experimental/issues/23) on the GitHub repository - we have a few templates to help you fill out an issue if you haven't done so before.
+You can report bugs and request features by [raising an issue](https://github.com/brainglobe/napari-experimental/issues/) on the GitHub repository - we have a few templates to help you fill out an issue if you haven't done so before.
 
 We follow the same [contribution guidelines](https://napari.org/stable/developers/index.html) as the napari project.
 Contributions are welcome to any of the plugins via pull request, and will be subject to review from appropriate maintainers.
