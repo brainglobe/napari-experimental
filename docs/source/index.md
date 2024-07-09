@@ -13,7 +13,7 @@ At present, the project provides the following plugins:
 
 ```{toctree}
 ---
-maxdepth: 1
+maxdepth: 2
 ---
 
 group_layers/index
