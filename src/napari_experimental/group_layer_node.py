@@ -24,12 +24,6 @@ class GroupLayerNode(Node):
         The Layer object that this Node should initially track.
     name: str, optional
         Name to be given to the Node upon creation. The Layer retains its name.
-
-    Attributes
-    ----------
-    is_tracking
-    layer
-    name
     """
 
     __default_name: str = "Node[None]"

@@ -75,9 +75,6 @@ class GroupLayerWidget(QWidget):
     def _new_layer_group(self) -> None:
         """
         Action taken when creating a new, empty layer group in the widget.
-
-        TODO: Still causes a seg-fault when moving an empty group inside
-        another empty group.
         """
         self.group_layers.add_new_group()
 
