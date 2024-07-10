@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="../../">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>GroupLayers and GroupLayerNodes &#8212; napari-experimental  documentation</title>
+    <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=d1102ebc" />
+    <link rel="stylesheet" type="text/css" href="../../_static/alabaster.css?v=12dfc556" />
+    <script src="../../_static/documentation_options.js?v=5929fcd5"></script>
+    <script src="../../_static/doctools.js?v=9a2dae69"></script>
+    <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="The GroupLayerWidget" href="widget.html" />
+    <link rel="prev" title="Implementation" href="../implementation.html" />
+   
+  <link rel="stylesheet" href="../../_static/custom.css" type="text/css" />
+  
+
+  
+  
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <section id="grouplayers-and-grouplayernodes">
+<h1><code class="docutils literal notranslate"><span class="pre">GroupLayer</span></code>s and <code class="docutils literal notranslate"><span class="pre">GroupLayerNode</span></code>s<a class="headerlink" href="#grouplayers-and-grouplayernodes" title="Link to this heading">¶</a></h1>
+<p><code class="docutils literal notranslate"><span class="pre">GroupLayerNode</span></code>  (GLN) and <code class="docutils literal notranslate"><span class="pre">GroupLayer</span></code>  (GL) inherit from the base napari classes <code class="docutils literal notranslate"><span class="pre">Node</span></code> and <code class="docutils literal notranslate"><span class="pre">Group</span></code> (respectively).
+The GLNs act as wrappers for <code class="docutils literal notranslate"><span class="pre">Layer</span></code>s - each one tracks (a pointer to) one particular <code class="docutils literal notranslate"><span class="pre">Layer</span></code> through the <code class="docutils literal notranslate"><span class="pre">.layer</span></code> attribute and uses its information when rendering in the GUI.
+GLs allow us to organise GLNs into groups, but they themselves must also be instances of GLN.
+For this reason, the convention we have adopted is that GLs have the <code class="docutils literal notranslate"><span class="pre">.layer</span></code> attribute set to <code class="docutils literal notranslate"><span class="pre">None</span></code> (since they do not track an individual layer that is associated to <em>them</em> specifically).
+Furthermore, the <code class="docutils literal notranslate"><span class="pre">is_group</span></code> method is explicitly defined on both GLNs and GLs, which provides a way to distinguish between the two classes when traversing the tree structure.</p>
+<p>It should also be noted that we have made the decision not to make GLNs inherit from <code class="docutils literal notranslate"><span class="pre">Layer</span></code>, nor make the existing <code class="docutils literal notranslate"><span class="pre">Layer</span></code> class subclass from <code class="docutils literal notranslate"><span class="pre">Node</span></code>.</p>
+<ul class="simple">
+<li><p>The latter would require changes to core napari code, so is outside the scope of this plugin.</p></li>
+<li><p>The former option then introduces event conflicts (within the constructors) when GL inherits from both <code class="docutils literal notranslate"><span class="pre">Group</span></code> and <code class="docutils literal notranslate"><span class="pre">Layer</span></code>. Again, fixing these issues requires either edits to the core napari codebase, or regurgitating a lot of the core napari codebase inside a new class for just a couple of line changes.</p></li>
+<li><p>From a separation of concerns perspective, it is cleaner to have the group layer functionality impose a structure on top of the existing <code class="docutils literal notranslate"><span class="pre">LayerList</span></code> that napari tracks, rather than duplicate this information so it can be stored in the GL, and then have to deal with changes to one of the objects being reflected back on the “original” it came from.</p></li>
+</ul>
+<nav class="contents local" id="contents">
+<ul class="simple">
+<li><p><a class="reference internal" href="#differences-from-the-layerlist-indexing-convention" id="id1">Differences from the <code class="docutils literal notranslate"><span class="pre">LayerList</span></code> Indexing Convention</a></p></li>
+<li><p><a class="reference internal" href="#hashing-and-equality" id="id2">Hashing and Equality</a></p></li>
+<li><p><a class="reference internal" href="#propagation-of-selection" id="id3">Propagation of selection</a></p></li>
+<li><p><a class="reference internal" href="#api-reference" id="id4">API Reference</a></p>
+<ul>
+<li><p><a class="reference internal" href="#grouplayernode" id="id5"><code class="docutils literal notranslate"><span class="pre">GroupLayerNode</span></code></a></p></li>
+<li><p><a class="reference internal" href="#grouplayer" id="id6"><code class="docutils literal notranslate"><span class="pre">GroupLayer</span></code></a></p></li>
+</ul>
+</li>
+</ul>
+</nav>
+<section id="differences-from-the-layerlist-indexing-convention">
+<h2><a class="toc-backref" href="#id1" role="doc-backlink">Differences from the <code class="docutils literal notranslate"><span class="pre">LayerList</span></code> Indexing Convention</a><a class="headerlink" href="#differences-from-the-layerlist-indexing-convention" title="Link to this heading">¶</a></h2>
+<p>A key difference between a flat <code class="docutils literal notranslate"><span class="pre">LayerList</span></code> and our GL structure is how they are indexed, and how the structures are rendered in the napari viewer based on this indexing.
+<code class="docutils literal notranslate"><span class="pre">LayerList</span></code> is indexed from 0 ascending, and renders in the napari viewer with the layer at index 0 at the <em>bottom</em> of the <code class="docutils literal notranslate"><span class="pre">LayerList</span></code>.
+<code class="docutils literal notranslate"><span class="pre">Layer</span></code>s with higher indices are rendered <em>on top</em> of those with a lower index, with the item assigned the highest index appearing at the top of the layer viewer window.</p>
+<p>By contrast, GL uses <code class="docutils literal notranslate"><span class="pre">NestedIndex</span></code>es to track the position of GLNs; these are tuples of integers that can be of arbitrary length (so long as the GL has the structure to match), and should be interpreted as subsequent accesses of objects in the tree:</p>
+<ul class="simple">
+<li><p>(0, 1) refers to the item at index 1 of the (sub)-GL at index 0 of the root GL.</p></li>
+<li><p>(2,) refers to the item at index 2 of the root GL.</p></li>
+</ul>
+<p>Note that an “item” can be a GLN or a GL (use the <code class="docutils literal notranslate"><span class="pre">is_group</span></code> method to distinguish if necessary)!
+Again, items are added to a GL using the lowest available index.
+GLs can also assign a flat index order to their elements by starting from the root tree and counting upwards from 0, descending into sub-GLs and exhausting their items when they are encountered (see <code class="docutils literal notranslate"><span class="pre">GroupLayer.flat_index_order</span></code>).</p>
+<p>However GLs render with index 0 <em>at the top</em> of the view, and higher indices below them.
+In order to preserve the user’s intuitive understanding of “layers higher up in the display appear on top of lower layers”, it is thus necessary to pass the <em>reversed</em> order of layers back to the viewer after a rearrangement event in the GL viewer.</p>
+</section>
+<section id="hashing-and-equality">
+<h2><a class="toc-backref" href="#id2" role="doc-backlink">Hashing and Equality</a><a class="headerlink" href="#hashing-and-equality" title="Link to this heading">¶</a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">GroupLayer</span></code>s need to be hashable due to how the <code class="docutils literal notranslate"><span class="pre">QtGroupLayerControlsContainer</span></code> stores the references between a <code class="docutils literal notranslate"><span class="pre">GroupLayer</span></code> and its controls; which is a dictionary of <code class="docutils literal notranslate"><span class="pre">GroupLayer</span></code> keys to <code class="docutils literal notranslate"><span class="pre">GroupLayerControls</span></code> values.
+However, <code class="docutils literal notranslate"><span class="pre">GroupLayer</span></code>s also need to be able to check for equality with other <code class="docutils literal notranslate"><span class="pre">GroupLayer</span></code> instances.
+Since <code class="docutils literal notranslate"><span class="pre">GroupLayer</span></code>s attributes are inherently mutable, this presents some problems.</p>
+<p>The solution is that <code class="docutils literal notranslate"><span class="pre">GroupLayer</span></code> instances are assigned a unique integer ID (from 0 upwards) when they are created, and this value serves as the <code class="docutils literal notranslate"><span class="pre">__hash__</span></code> value of the instance.
+Equality between <code class="docutils literal notranslate"><span class="pre">GroupLayer</span></code>s then checks that the IDs of the two (pointers to) instances are identical.
+This is a safe property to use as the hash value since it fulfils all necessary requirements for a hash, however does lead to the rather odd behaviour that no two instances of <code class="docutils literal notranslate"><span class="pre">GroupLayer</span></code> will be “equal”.
+This in itself is a (semi-)desirable situation for us though: even if two <code class="docutils literal notranslate"><span class="pre">GroupLayer</span></code>s contain the same nested structure, name, etc, this does not mean they are identical in terms of how the user has decided to organise them within the tree structure.
+However, care should be taken when comparing for identical <code class="docutils literal notranslate"><span class="pre">GroupLayer</span></code> instances - if you want to check equality of <code class="docutils literal notranslate"><span class="pre">GroupLayer</span></code> attributes, you will need to explicitly check these via <code class="docutils literal notranslate"><span class="pre">GroupLayer1.&lt;attribute&gt;</span> <span class="pre">==</span> <span class="pre">GroupLayer2.&lt;attribute&gt;</span></code>.</p>
+</section>
+<section id="propagation-of-selection">
+<h2><a class="toc-backref" href="#id3" role="doc-backlink">Propagation of selection</a><a class="headerlink" href="#propagation-of-selection" title="Link to this heading">¶</a></h2>
+<p>Each <code class="docutils literal notranslate"><span class="pre">GroupLayer</span></code> within a tree has its own <code class="docutils literal notranslate"><span class="pre">.selection</span></code> containing a list of <code class="docutils literal notranslate"><span class="pre">GroupLayer</span></code> or <code class="docutils literal notranslate"><span class="pre">GroupLayerNode</span></code>.
+These selected items can be at any level within the tree (not just restricted to direct children).</p>
+<p>To keep selection changes synced at all levels in the tree, the <code class="docutils literal notranslate"><span class="pre">GroupLayer</span></code>’s <code class="docutils literal notranslate"><span class="pre">propagate_selection</span></code> function is called every time the selection changes.
+This propagates the selection to any nested <code class="docutils literal notranslate"><span class="pre">Group</span> <span class="pre">Layer</span></code>s inside of it.
+Note that this propagation only happens in one direction (from parents to children)!
+Also, only the selected items are currently updated with <code class="docutils literal notranslate"><span class="pre">propagate_selection</span></code>.
+This means that, for example, the ‘active’ selected item might not be synced correctly to other levels in the tree.</p>
+</section>
+<section id="api-reference">
+<h2><a class="toc-backref" href="#id4" role="doc-backlink">API Reference</a><a class="headerlink" href="#api-reference" title="Link to this heading">¶</a></h2>
+<section id="grouplayernode">
+<h3><a class="toc-backref" href="#id5" role="doc-backlink"><code class="docutils literal notranslate"><span class="pre">GroupLayerNode</span></code></a><a class="headerlink" href="#grouplayernode" title="Link to this heading">¶</a></h3>
+</section>
+<section id="grouplayer">
+<h3><a class="toc-backref" href="#id6" role="doc-backlink"><code class="docutils literal notranslate"><span class="pre">GroupLayer</span></code></a><a class="headerlink" href="#grouplayer" title="Link to this heading">¶</a></h3>
+</section>
+</section>
+</section>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../index.html">napari-experimental</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="../index.html">Group Layers</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="../implementation.html">Implementation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../index.html#ethos-and-outlook">Ethos and Outlook</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../index.html#installation">Installation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../index.html#todo">Todo</a></li>
+</ul>
+</li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../index.html">Documentation overview</a><ul>
+  <li><a href="../index.html">Group Layers</a><ul>
+  <li><a href="../implementation.html">Implementation</a><ul>
+      <li>Previous: <a href="../implementation.html" title="previous chapter">Implementation</a></li>
+      <li>Next: <a href="widget.html" title="next chapter">The <code class="docutils literal notranslate"><span class="pre">GroupLayerWidget</span></code></a></li>
+  </ul></li>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<search id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</search>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &#169;2024, Alessandro Felder, William Graham, Kimberly Meechan.
+      
+      |
+      Powered by <a href="https://www.sphinx-doc.org/">Sphinx 7.3.7</a>
+      &amp; <a href="https://alabaster.readthedocs.io">Alabaster 0.7.16</a>
+      
+      |
+      <a href="../../_sources/group_layers/classes/group_layer_and_nodes.md.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>
