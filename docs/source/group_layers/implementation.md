@@ -26,6 +26,8 @@ The key classes implemented in this plugin are
 - `GroupLayerNode`, `GroupLayer`: These are the Python classes that provide the tree-structure that group layers require. We expand on these below.
 - `QtGroupLayerControls`, `QtGroupLayerControlsContainer`: These classes are used to build the "control box" that the plugin provides when selecting a layer within the plugin. For all intents and purposes it mimics the existing napari layer viewer context window, but also reacts when selecting a group layer.
 - `QtGroupLayerModel`, `QtGroupLayerView`: These subclass from the appropriate Qt abstract classes, and provide the model/tree infrastructure for working with `GroupLayers`. Beyond this, they do not contain any remarkable functionality beyond patching certain methods for consistency with the data being handled / displayed.
+- `GroupLayerDelegate`: handles display of thumbnails / icons on layers and group layers, as well as displaying the right click context menu.
+- `GroupLayerActions`, `ContextMenu`: These classes are used to build the right click context menu. `GroupLayerActions` can be expanded to add more options to this menu.
 
 You can navigate to the respective pages for further information on each of these classes:
 

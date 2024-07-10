@@ -48,6 +48,17 @@ This is a safe property to use as the hash value since it fulfils all necessary 
 This in itself is a (semi-)desirable situation for us though: even if two `GroupLayer`s contain the same nested structure, name, etc, this does not mean they are identical in terms of how the user has decided to organise them within the tree structure.
 However, care should be taken when comparing for identical `GroupLayer` instances - if you want to check equality of `GroupLayer` attributes, you will need to explicitly check these via `GroupLayer1.<attribute> == GroupLayer2.<attribute>`.
 
+## Propagation of selection
+
+Each `GroupLayer` within a tree has its own `.selection` containing a list of `GroupLayer` or `GroupLayerNode`.
+These selected items can be at any level within the tree (not just restricted to direct children).
+
+To keep selection changes synced at all levels in the tree, the `GroupLayer`'s `propagate_selection` function is called every time the selection changes.
+This propagates the selection to any nested `Group Layer`s inside of it.
+Note that this propagation only happens in one direction (from parents to children)!
+Also, only the selected items are currently updated with `propagate_selection`.
+This means that, for example, the 'active' selected item might not be synced correctly to other levels in the tree.
+
 ## API Reference
 
 ### `GroupLayerNode`
