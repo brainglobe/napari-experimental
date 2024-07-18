@@ -19,7 +19,7 @@ classifiers = [
     "Topic :: Scientific/Engineering :: Image Processing",
 ]
 requires-python = ">=3.9"
-dependencies = ["numpy", "napari", "magicgui", "pyqt5", "qtpy", "scikit-image"]
+dependencies = ["numpy", "napari>=0.5", "magicgui", "pyqt5", "qtpy", "scikit-image"]
 dynamic = ["version"]
 
 [project.entry-points."napari.manifest"]
