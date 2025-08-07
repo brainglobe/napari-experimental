@@ -10,7 +10,6 @@
 [![Python Version](https://img.shields.io/pypi/pyversions/napari-experimental.svg?color=green)](https://python.org)
 [![tests](https://github.com/brainglobe/napari-experimental/workflows/tests/badge.svg)](https://github.com/brainglobe/napari-experimental/actions)
 [![codecov](https://codecov.io/gh/brainglobe/napari-experimental/branch/main/graph/badge.svg)](https://codecov.io/gh/brainglobe/napari-experimental)
-[![napari hub](https://img.shields.io/endpoint?url=https://api.napari-hub.org/shields/napari-experimental)](https://napari-hub.org/plugins/napari-experimental)
 
 ## Overview
 
